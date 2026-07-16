@@ -38,9 +38,43 @@ test("server-renders the Self Apply Center homepage", async () => {
   assert.match(html, /images\.unsplash\.com/);
   assert.match(html, /google\.com\/maps/);
   assert.match(html, /ICEF/);
+  assert.match(html, /data-account-id="6872"/);
+  assert.match(html, /www-cdn\.icef\.com\/scripts\/iasbadgeid\.js/);
+  assert.match(html, /tiktok\.com\/@selfapplycenter/);
   assert.match(html, /info@selfapplycenter\.com/);
   assert.match(html, /sac\.osom\.global\/1\/student/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
+});
+
+test("renders maintainable blog posts and adaptive partnership fields", async () => {
+  const blog = await render("/blog");
+  const blogHtml = await blog.text();
+  assert.match(blogHtml, /Your 12-month study-abroad application timeline/i);
+  assert.match(blogHtml, /\/blog\/study-abroad-application-timeline/);
+
+  const article = await render("/blog/study-abroad-application-timeline");
+  assert.equal(article.status, 200);
+  assert.match(await article.text(), /Starting early gives you time/i);
+
+  const partner = await render("/partner-with-us");
+  const partnerHtml = await partner.text();
+  assert.match(partnerHtml, /University or institution name/i);
+  assert.match(partnerHtml, /Agent/i);
+  assert.match(partnerHtml, /Send partnership enquiry/i);
+});
+
+test("renders page-specific frequently asked questions", async () => {
+  const services = await render("/services");
+  assert.match(await services.text(), /Do you review SOPs and application documents/i);
+
+  const destinations = await render("/destinations");
+  assert.match(await destinations.text(), /Which destination is best for my profile/i);
+
+  const partner = await render("/partner-with-us");
+  assert.match(await partner.text(), /Who can submit a partnership enquiry/i);
+
+  const contact = await render("/contact");
+  assert.match(await contact.text(), /When is the SAC office open/i);
 });
 
 test("renders the complete consultancy page set", async () => {

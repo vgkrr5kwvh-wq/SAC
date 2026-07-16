@@ -11,7 +11,7 @@ const services = [
   ["01", "Course & University Mapping", "Build a realistic shortlist around your academics, budget, career goals, intake, and preferred countries.", "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=85"],
   ["02", "Document & Story Review", "Strengthen your SOP, CV, academic files, financial documents, and application details before submission.", "https://images.unsplash.com/photo-1456324504439-367cee3b3c32?auto=format&fit=crop&w=1200&q=85"],
   ["03", "Application Roadmap Tracking", "See what is pending, ready, submitted, and what needs your attention next.", "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=1200&q=85"],
-  ["04", "Offer, Visa & Enrollment Prep", "Move from offer letter to visa and enrollment with organized checklists and practical counselling.", "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1200&q=85"],
+  ["04", "Offer, Visa & Enrollment Prep", "Move from offer letter to visa and enrollment with organized checklists and practical counselling.", "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1200&q=85"],
 ];
 
 const journey = [
@@ -26,7 +26,7 @@ const destinations = [
   ["USA", "Flexible study routes", "Profile-first guidance across universities, courses, and budgets.", "https://images.unsplash.com/photo-1485738422979-f5c462d49f74?auto=format&fit=crop&w=1200&q=85"],
   ["Canada", "Practical program planning", "Compare course relevance, affordability, and intake requirements.", "https://images.unsplash.com/photo-1517935706615-2717063c2225?auto=format&fit=crop&w=1200&q=85"],
   ["UK", "Clear intake decisions", "Understand entry requirements, timelines, and document expectations.", "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=1200&q=85"],
-  ["South Korea", "Emerging pathways", "Explore language, scholarship, and degree opportunities with context.", "https://images.unsplash.com/photo-1538485399081-7c897b3c9953?auto=format&fit=crop&w=1200&q=85"],
+  ["South Korea", "Emerging pathways", "Explore language, scholarship, and degree opportunities with context.", "https://images.unsplash.com/photo-1517154421773-0529f29ea451?auto=format&fit=crop&w=1200&q=85"],
 ];
 
 const testimonials = [
@@ -108,7 +108,7 @@ export default function HomePage() {
               {services.map(([number, title, copy, image]) => (
                 <article className="service-card" key={number}>
                   <div className="service-image">
-                    <Image src={image} alt="" fill sizes="(max-width: 680px) 100vw, (max-width: 1180px) 50vw, 580px" />
+                    <Image src={image} alt="" fill sizes="(max-width: 680px) 100vw, (max-width: 1180px) 50vw, 580px" unoptimized />
                     <span className="card-number">{number}</span>
                   </div>
                   <div className="service-card-copy">
@@ -169,7 +169,7 @@ export default function HomePage() {
             <div className="destination-grid">
               {destinations.map(([title, subtitle, copy, image]) => (
                 <article key={title}>
-                  <Image src={image} alt={`${title} study destination`} fill sizes="(max-width: 680px) 100vw, (max-width: 1020px) 50vw, 295px" />
+                  <Image src={image} alt={`${title} study destination`} fill sizes="(max-width: 680px) 100vw, (max-width: 1020px) 50vw, 295px" unoptimized />
                   <div className="destination-overlay" />
                   <div className="destination-copy">
                     <span className="country-code">{title.slice(0, 2)}</span>

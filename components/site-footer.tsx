@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 
 export default function SiteFooter() {
   return (
@@ -18,13 +19,18 @@ export default function SiteFooter() {
           <div className="footer-brand">
             <div className="footer-logo-row">
               <Image src="/sac-logo.png" alt="Self Apply Center" width={350} height={132} />
-              <div className="icef-badge" aria-label="ICEF agency badge">
-                <span>ICEF</span>
-                <small>AGENCY</small>
+              <div className="icef-badge-container" aria-label="ICEF Agency Status badge">
+                <span id="iasBadge" data-account-id="6872" />
+                <Script
+                  id="icef-ias-badge"
+                  src="https://www-cdn.icef.com/scripts/iasbadgeid.js"
+                  strategy="afterInteractive"
+                  crossOrigin="anonymous"
+                />
               </div>
             </div>
             <p>Professional education guidance for students who want a transparent, well-organized route to international study.</p>
-            <div className="social-text"><a href="https://www.facebook.com/selfapplycenter" target="_blank" rel="noopener noreferrer">Facebook</a><a href="https://www.instagram.com/usaselfapplycenter" target="_blank" rel="noopener noreferrer">Instagram</a><a href="https://www.linkedin.com/company/self-apply-center" target="_blank" rel="noopener noreferrer">LinkedIn</a></div>
+            <div className="social-text"><a href="https://www.facebook.com/selfapplycenter" target="_blank" rel="noopener noreferrer">Facebook</a><a href="https://www.instagram.com/usaselfapplycenter" target="_blank" rel="noopener noreferrer">Instagram</a><a href="https://www.linkedin.com/company/self-apply-center" target="_blank" rel="noopener noreferrer">LinkedIn</a><a href="https://www.tiktok.com/@selfapplycenter" target="_blank" rel="noopener noreferrer">TikTok</a></div>
           </div>
           <div><h3>Company</h3><Link href="/about">About Us</Link><Link href="/our-team">Our Team</Link><Link href="/partner-with-us">Partner With Us</Link><Link href="/events">Events</Link></div>
           <div><h3>Student Support</h3><Link href="/services">Our Services</Link><Link href="/destinations">Study Destinations</Link><Link href="/success-stories">Success Stories</Link><Link href="/blog">Study Resources</Link></div>

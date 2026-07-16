@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import BlogIndex from "../../components/blog-index";
+import PartnerForm from "../../components/partner-form";
 import { sitePages } from "../site-data";
 
 export function generateStaticParams() {
@@ -19,6 +21,8 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
   if (!page) notFound();
 
   const isContact = slug === "contact";
+  const isBlog = slug === "blog";
+  const isPartner = slug === "partner-with-us";
 
   return (
     <main>
@@ -28,7 +32,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
           <div className="breadcrumb"><Link href="/">Home</Link><span>→</span><strong>{page.eyebrow}</strong></div>
         </div>
       </section>
-      <section className="section">
+      {isBlog ? <BlogIndex /> : <section className="section">
         <div className={`shell content-page-grid${page.sections.length > 4 ? " wide" : ""}`}>
           {page.sections.map((section, index) => (
             <article className="page-content-card" key={section.title}>
@@ -42,14 +46,15 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
             </article>
           ))}
         </div>
-      </section>
+      </section>}
+      {isPartner && <PartnerForm />}
       <section className="faq-section">
         <div className="shell faq-grid">
-          <div><span className="eyebrow">Common questions</span><h2>Before you begin</h2><p>Every application is different, but these are useful starting points.</p></div>
+          <div><span className="eyebrow">Common questions</span><h2>About {page.eyebrow.toLowerCase()}</h2><p>Helpful answers related specifically to this page.</p></div>
           <div>
-            <details><summary>When should I contact SAC?</summary><p>Ideally 9–12 months before your intended intake, though shorter timelines may still be possible depending on the course and destination.</p></details>
-            <details><summary>What should I bring for counselling?</summary><p>Bring your academic documents, passport if available, English test results, work history, destination interests, and an honest idea of your budget.</p></details>
-            <details><summary>Can I start online?</summary><p>Yes. You can begin through the SAC application portal or contact the team through WhatsApp before visiting the office.</p></details>
+            {page.faqs.map((faq) => (
+              <details key={faq.question}><summary>{faq.question}</summary><p>{faq.answer}</p></details>
+            ))}
           </div>
         </div>
       </section>
