@@ -2,6 +2,8 @@
 
 The website for Self Apply Center, built with Next.js, React, TypeScript, and Tailwind CSS.
 
+Shared navigation and footer components live in `components/`. Route content is defined in `app/site-data.ts` and rendered through the App Router.
+
 ## Getting Started
 
 Requires Node.js 22.13 or newer.

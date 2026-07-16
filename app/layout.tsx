@@ -1,37 +1,47 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit } from "next/font/google";
+import SiteFooter from "../components/site-footer";
+import SiteHeader from "../components/site-header";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Starter Project",
-  description: "A clean starting point for building your site.",
+  metadataBase: new URL("https://selfapplycenter.com"),
+  title: {
+    default: "Self Apply Center | Apply Abroad with Clarity",
+    template: "%s | Self Apply Center",
+  },
+  description:
+    "Self Apply Center helps students apply abroad with transparent guidance, document review, destination planning, and application tracking.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/sac-logo.png",
+    shortcut: "/sac-logo.png",
+  },
+  openGraph: {
+    title: "Self Apply Center",
+    description: "Apply abroad yourself, with experts beside you.",
+    images: [{ url: "/og.png", width: 1734, height: 907, alt: "Self Apply Center guided study-abroad application support" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Self Apply Center",
+    description: "Apply abroad yourself, with experts beside you.",
+    images: ["/og.png"],
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={outfit.variable}>
+        <SiteHeader />
         {children}
+        <SiteFooter />
       </body>
     </html>
   );

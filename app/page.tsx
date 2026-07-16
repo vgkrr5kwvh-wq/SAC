@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
-import { SkeletonPreview } from "./_sites-preview/SkeletonPreview";
+import HomePage from "./home-page";
 
 export const metadata: Metadata = {
-  title: "Your site is taking shape",
+  title: "Guided Self-Application for Global Study",
   description:
-    "Codex is building the first version. It’ll appear here automatically when it’s ready.",
-  other: {
-    "codex-preview": "development",
-  },
+    "Apply abroad with expert guidance, transparent planning, document review, and clear next steps from Self Apply Center.",
 };
 
-export default function Home() {
-  return <SkeletonPreview />;
+export default function Page() {
+  return <HomePage />;
 }

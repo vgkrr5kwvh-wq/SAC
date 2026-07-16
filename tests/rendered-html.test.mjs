@@ -1,19 +1,14 @@
 import assert from "node:assert/strict";
-import { access, readFile, readdir } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
-const developmentPreviewMeta =
-  /<meta(?=[^>]*\bname=["']codex-preview["'])(?=[^>]*\bcontent=["']development["'])[^>]*>/i;
-const templateRoot = new URL("../", import.meta.url);
-const previewRoot = new URL("../app/_sites-preview/", import.meta.url);
-
-async function render() {
+async function render(path = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
-    new Request("http://localhost/", {
+    new Request(`http://localhost${path}`, {
       headers: { accept: "text/html" },
     }),
     {
@@ -28,60 +23,68 @@ async function render() {
   );
 }
 
-test("server-renders the starter loading skeleton", async () => {
+test("server-renders the Self Apply Center homepage", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, developmentPreviewMeta);
-  assert.match(html, /<title>Your site is taking shape<\/title>/i);
-  assert.match(html, /Codex is working/);
-  assert.match(html, /Your site is taking shape/);
-  assert.match(html, /Codex is building the first version/);
-  assert.match(html, /react-loading-skeleton/);
-  assert.match(html, /role="status"/);
+  assert.match(html, /<title>Guided Self-Application for Global Study \| Self Apply Center<\/title>/i);
+  assert.match(html, /Apply abroad yourself, with experts beside you\./i);
+  assert.match(html, /A consultancy for students who do not want to feel dependent\./i);
+  assert.match(html, /USA/);
+  assert.match(html, /Canada/);
+  assert.match(html, /South Korea/);
+  assert.match(html, /images\.unsplash\.com/);
+  assert.match(html, /google\.com\/maps/);
+  assert.match(html, /ICEF/);
+  assert.match(html, /info@selfapplycenter\.com/);
+  assert.match(html, /sac\.osom\.global\/1\/student/);
+  assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });
 
-test("keeps the loading skeleton scoped and disposable", async () => {
-  const [preview, css, page, layout, packageJson, files] = await Promise.all([
-    readFile(new URL("SkeletonPreview.tsx", previewRoot), "utf8"),
-    readFile(new URL("preview.css", previewRoot), "utf8"),
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+test("renders the complete consultancy page set", async () => {
+  const expectedPages = [
+    ["/about", /A consultancy built around clear student decisions/i],
+    ["/our-team", /People who keep your application organised/i],
+    ["/services", /Complete guidance for every stage/i],
+    ["/destinations", /Choose a destination that fits your profile/i],
+    ["/success-stories", /Student journeys supported with patience/i],
+    ["/blog", /Straightforward guidance for common study-abroad questions/i],
+    ["/events", /Focused sessions for the decisions students face next/i],
+    ["/contact", /Talk to a counsellor about your study goal/i],
+    ["/partner-with-us", /Build clearer international study pathways/i],
+  ];
+
+  for (const [path, heading] of expectedPages) {
+    const response = await render(path);
+    assert.equal(response.status, 200, path);
+    const html = await response.text();
+    assert.match(html, heading, path);
+    assert.match(html, /Start your study-abroad journey with SAC/i, path);
+  }
+});
+
+test("ships project branding and social-preview assets", async () => {
+  const [layout, page, homePage, packageJson, siteData] = await Promise.all([
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/home-page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
-    readdir(previewRoot),
+    readFile(new URL("../app/site-data.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.deepEqual(files.sort(), ["SkeletonPreview.tsx", "preview.css"]);
-  assert.match(preview, /from "react-loading-skeleton"/);
-  assert.match(preview, /baseColor="#eceae7"/);
-  assert.match(preview, /highlightColor="#f9f8f6"/);
-  assert.match(preview, /duration=\{2\.8\}/);
-  assert.match(preview, /sites-skeleton-search-placeholder/);
-  assert.match(packageJson, /"react-loading-skeleton": "3\.5\.0"/);
+  assert.match(layout, /Self Apply Center/);
+  assert.match(layout, /\/og\.png/);
+  assert.match(layout, /\/sac-logo\.png/);
+  assert.match(page, /<HomePage \/>/);
+  assert.match(homePage, /self-apply-center-hero\.png/);
+  assert.doesNotMatch(packageJson, /react-loading-skeleton/);
+  assert.match(siteData, /partner-with-us/);
 
-  const shellIndex = preview.indexOf('className="sites-skeleton-shell"');
-  const statusIndex = preview.indexOf('className="sites-skeleton-status"');
-  assert.ok(shellIndex >= 0 && statusIndex > shellIndex);
-  assert.match(css, /position:\s*fixed/);
-  assert.match(css, /inset:\s*0/);
-  assert.match(css, /opacity:\s*0\.52/);
-  assert.match(css, /prefers-reduced-motion:\s*reduce/);
-  assert.doesNotMatch(css, /#020617|canvas|pets|progress/i);
-  assert.doesNotMatch(
-    preview,
-    /loading-spinner|status-mark|status-progress|canvas|cookie|random/i,
-  );
-
-  assert.match(page, /export const metadata:\s*Metadata/);
-  assert.match(page, /"codex-preview": "development"/);
-  assert.match(page, /<SkeletonPreview \/>/);
-  assert.match(layout, /title:\s*"Starter Project"/);
-  assert.doesNotMatch(layout, /codex-preview|_sites-preview|themeColor|\bViewport\b/);
-  assert.doesNotMatch(css, /(^|\s)(html|body)\s*\{/m);
-
-  await assert.rejects(
-    access(new URL("public/_sites-preview", templateRoot)),
-  );
+  await Promise.all([
+    access(new URL("../public/sac-logo.png", import.meta.url)),
+    access(new URL("../public/self-apply-center-hero.png", import.meta.url)),
+    access(new URL("../public/og.png", import.meta.url)),
+  ]);
 });
