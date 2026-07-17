@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Enquiry {
+  id                   String             @id @default(cuid()) @db.VarChar(30)
+  name                 String             @db.VarChar(120)
+  email                String             @db.VarChar(254)
+  interest             String?            @db.VarChar(200)
+  message              String             @db.Text
+  clientHash           String             @db.Char(64)
+  notificationStatus   NotificationStatus @default(PENDING)
+  notificationFailedAt DateTime?
+  createdAt            DateTime           @default(now())
+
+  @@index([clientHash, createdAt])
+  @@index([email, createdAt])
+}

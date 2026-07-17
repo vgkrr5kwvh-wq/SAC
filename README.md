@@ -39,7 +39,35 @@ npm run start
 - Build output: `.next`
 - Default application port: `3000`
 
-No application environment variables are currently required. `.env*` files are ignored by Git, while `.env.example` is intentionally committed as the safe variable-name template.
+The enquiry API requires a MySQL or MariaDB database and Resend credentials. Copy `.env.example` to `.env.local` for local development and provide values without committing that file.
+
+## Enquiry backend
+
+The homepage enquiry form stores validated submissions in MySQL through Prisma before attempting notification delivery. Email failures are recorded on the saved enquiry and do not make the visitor resubmit their information.
+
+Required environment variables:
+
+- `DATABASE_URL` — Prisma MySQL connection string.
+- `RESEND_API_KEY` — server-only Resend API key.
+- `ENQUIRY_FROM_EMAIL` — verified sender, such as `Self Apply Center <enquiries@updates.selfapplycenter.com>`.
+- `ENQUIRY_NOTIFICATION_TO` — notification recipient; production should use `info@selfapplycenter.com`.
+- `RATE_LIMIT_SALT` — long random server-only value used when hashing client identifiers.
+
+Optional rate-limit settings are `RATE_LIMIT_WINDOW_MINUTES` and `RATE_LIMIT_MAX_SUBMISSIONS`. They default to 15 minutes and 5 submissions.
+
+Create a local development migration after changing `prisma/schema.prisma`:
+
+```bash
+npm run db:migrate:dev
+```
+
+Apply committed migrations in production before starting the application:
+
+```bash
+npm run db:migrate:deploy
+```
+
+Production deployment must use `prisma migrate deploy`; do not use `prisma db push` as the deployment migration process.
 
 ## Deploying to Hostinger with GitHub
 
@@ -55,7 +83,7 @@ Hostinger Node.js Web Apps require a Business Web Hosting or supported Cloud hos
 8. Set the build command to `npm run build`.
 9. Set the start command to `npm run start`.
 10. If Hostinger requests an output directory, enter `.next`. Do not configure a custom entry file for a detected Next.js application.
-11. Do not add environment variables for the current release; none are required.
+11. Add the enquiry backend variables documented in `.env.example`.
 12. Deploy and verify the temporary preview before directing production traffic to it.
 13. Attach `selfapplycenter.com` and enable its SSL certificate in hPanel. Confirm both the apex domain and `www` resolve to the deployed Node.js website.
 

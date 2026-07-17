@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FormEvent } from "react";
+import { FormEvent, useState } from "react";
 
 const applyUrl = "https://sac.osom.global/1/student";
 const whatsappUrl =
@@ -36,18 +36,50 @@ const testimonials = [
 ];
 
 export default function HomePage() {
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const [formState, setFormState] = useState<{
+    status: "idle" | "submitting" | "success" | "validation-error" | "server-error";
+    message: string;
+  }>({ status: "idle", message: "Submit the form and our team will receive your enquiry securely." });
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const summary = [...data.entries()]
-      .filter(([, value]) => String(value).trim())
-      .map(([key, value]) => `${key}: ${value}`)
-      .join("\n");
-    window.location.href = `mailto:info@selfapplycenter.com?subject=${encodeURIComponent(
-      "Website enquiry"
-    )}&body=${encodeURIComponent(summary)}`;
-    form.reset();
+    setFormState({ status: "submitting", message: "Sending your enquiry…" });
+
+    try {
+      const response = await fetch("/api/enquiries", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: data.get("Name"),
+          email: data.get("Email"),
+          interest: data.get("Interest"),
+          message: data.get("Message"),
+          website: data.get("website"),
+        }),
+      });
+      const result = await response.json().catch(() => null) as {
+        message?: string;
+        fieldErrors?: Record<string, string[]>;
+      } | null;
+
+      if (!response.ok) {
+        const fieldMessage = result?.fieldErrors
+          ? Object.values(result.fieldErrors).flat().find(Boolean)
+          : undefined;
+        setFormState({
+          status: response.status === 400 ? "validation-error" : "server-error",
+          message: fieldMessage ?? result?.message ?? "We could not send your enquiry. Please try again.",
+        });
+        return;
+      }
+
+      form.reset();
+      setFormState({ status: "success", message: result?.message ?? "Thank you. Your enquiry has been received." });
+    } catch {
+      setFormState({ status: "server-error", message: "We could not send your enquiry. Please check your connection and try again." });
+    }
   }
 
   return (
@@ -214,12 +246,13 @@ export default function HomePage() {
               </div>
             </div>
             <form className="contact-form" onSubmit={handleSubmit}>
+              <label className="form-honeypot" aria-hidden="true">Website<input name="website" type="text" tabIndex={-1} autoComplete="off" /></label>
               <label>Full name<input name="Name" type="text" placeholder="Your full name" required autoComplete="name" /></label>
               <label>Email address<input name="Email" type="email" placeholder="you@example.com" required autoComplete="email" /></label>
               <label>Destination or course<input name="Interest" type="text" placeholder="Canada, Business Analytics" /></label>
               <label>How can we help?<textarea name="Message" rows={4} placeholder="Tell us where you want to study and what support you need." required /></label>
-              <button className="button primary" type="submit">Send enquiry <span>→</span></button>
-              <p className="form-message">Your enquiry will open in your email application.</p>
+              <button className="button primary" type="submit" disabled={formState.status === "submitting"}>{formState.status === "submitting" ? "Sending enquiry…" : "Send enquiry"} <span>→</span></button>
+              <p className="form-message" role="status" aria-live="polite">{formState.message}</p>
             </form>
           </div>
         </section>

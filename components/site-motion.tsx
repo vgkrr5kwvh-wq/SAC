@@ -1,5 +1,6 @@
 "use client";
 
+import { animate, inView, stagger } from "motion";
 import { useEffect } from "react";
 
 export default function SiteMotion() {
@@ -8,53 +9,124 @@ export default function SiteMotion() {
     const root = document.documentElement;
     const header = document.querySelector<HTMLElement>(".site-header");
     const hero = document.querySelector<HTMLElement>(".hero");
-    const targets = document.querySelectorAll<HTMLElement>(
-      [
-        ".hero-copy > *",
-        ".hero-media",
-        ".section-heading > *",
-        ".split-grid > *",
-        ".contact-grid > *",
-        ".location-heading > *",
-        ".inner-hero-grid > *",
-        ".blog-toolbar > *",
-        ".partner-form-grid > *",
-        ".faq-grid > *",
-        ".service-card",
-        ".journey-grid article",
-        ".destination-grid article",
-        ".story-grid blockquote",
-        ".page-content-card",
-        ".blog-card",
-        ".contact-details > *",
-        ".page-card-media",
-        ".roadmap-photo",
-      ].join(",")
-    );
+    const cleanups: Array<() => void> = [];
+    const controls: Array<{ stop: () => void }> = [];
 
-    targets.forEach((target, index) => {
-      target.classList.add("reveal-item");
-      target.style.setProperty("--reveal-delay", `${Math.min(index % 5, 4) * 70}ms`);
-    });
+    if (!reduceMotion) {
+      const heroCopyItems = document.querySelectorAll<HTMLElement>(
+        ".hero-copy > .eyebrow, .hero-copy > h1, .hero-copy > p, .hero-copy > .button-row, .hero-metrics"
+      );
 
-    if (reduceMotion) {
-      targets.forEach((target) => target.classList.add("is-revealed"));
-      return;
-    }
+      if (heroCopyItems.length) {
+        controls.push(
+          animate(
+            heroCopyItems,
+            { opacity: [0, 1], y: [16, 0] },
+            { duration: .62, delay: stagger(.07), ease: [.22, 1, .36, 1] }
+          )
+        );
+      }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-revealed");
-            observer.unobserve(entry.target);
-          }
+      const heroMedia = document.querySelector<HTMLElement>(".hero-media");
+      if (heroMedia) {
+        controls.push(
+          animate(
+            heroMedia,
+            { opacity: [0, 1], x: [10, 0], scale: [.985, 1] },
+            { duration: .72, delay: .12, ease: [.22, 1, .36, 1] }
+          )
+        );
+      }
+
+      const trustBadges = document.querySelectorAll<HTMLElement>(".trust-grid span");
+      if (trustBadges.length) {
+        controls.push(
+          animate(
+            trustBadges,
+            { opacity: [.55, 1], y: [6, 0] },
+            { duration: .42, delay: stagger(.045, { startDelay: .28 }), ease: "easeOut" }
+          )
+        );
+      }
+
+      document.querySelectorAll<HTMLElement>(".card-grid, .destination-grid, .story-grid").forEach((grid) => {
+        Array.from(grid.children).forEach((card) => {
+          (card as HTMLElement).style.opacity = "0";
         });
-      },
-      { threshold: 0.1, rootMargin: "0px 0px -35px" }
-    );
+        const stop = inView(
+          grid,
+          () => {
+            const cards = Array.from(grid.children) as HTMLElement[];
+            controls.push(
+              animate(
+                cards,
+                { opacity: [0, 1], y: [30, 0] },
+                { duration: .68, delay: stagger(.1), ease: [.22, 1, .36, 1] }
+              )
+            );
+          },
+          { amount: .16, margin: "0px 0px -8%" }
+        );
+        cleanups.push(stop);
+      });
 
-    targets.forEach((target) => observer.observe(target));
+      document.querySelectorAll<HTMLElement>(
+        ".section-heading, .split-grid > div:last-child, .contact-grid > div:first-child, .location-heading"
+      ).forEach((section) => {
+        section.style.opacity = "0";
+        const stop = inView(
+          section,
+          () => {
+            controls.push(
+              animate(
+                section,
+                { opacity: [0, 1], y: [22, 0] },
+                { duration: .7, ease: [.22, 1, .36, 1] }
+              )
+            );
+          },
+          { amount: .2, margin: "0px 0px -10%" }
+        );
+        cleanups.push(stop);
+      });
+
+      const timeline = document.querySelector<HTMLElement>(".journey-grid");
+      if (timeline) {
+        Array.from(timeline.children).forEach((step) => {
+          (step as HTMLElement).style.opacity = "0";
+        });
+        const stop = inView(
+          timeline,
+          () => {
+            timeline.classList.add("timeline-is-visible");
+            controls.push(
+              animate(
+                Array.from(timeline.children) as HTMLElement[],
+                { opacity: [0, 1], x: [-18, 0] },
+                { duration: .62, delay: stagger(.12), ease: [.22, 1, .36, 1] }
+              )
+            );
+          },
+          { amount: .22, margin: "0px 0px -8%" }
+        );
+        cleanups.push(stop);
+      }
+
+      document.querySelectorAll<HTMLElement>(".button, .nav-cta").forEach((button) => {
+        const enter = () => {
+          controls.push(animate(button, { y: -3, scale: 1.015 }, { duration: .22, ease: "easeOut" }));
+        };
+        const leave = () => {
+          controls.push(animate(button, { y: 0, scale: 1 }, { duration: .28, ease: [.22, 1, .36, 1] }));
+        };
+        button.addEventListener("pointerenter", enter);
+        button.addEventListener("pointerleave", leave);
+        cleanups.push(() => {
+          button.removeEventListener("pointerenter", enter);
+          button.removeEventListener("pointerleave", leave);
+        });
+      });
+    }
 
     let frame = 0;
     const updateScrollEffects = () => {
@@ -62,34 +134,22 @@ export default function SiteMotion() {
       const scrollTop = window.scrollY;
       const scrollRange = document.documentElement.scrollHeight - window.innerHeight;
       root.style.setProperty("--scroll-progress", `${scrollRange > 0 ? scrollTop / scrollRange : 0}`);
-      root.style.setProperty("--hero-shift", `${Math.min(scrollTop * 0.075, 48)}px`);
+      root.style.setProperty("--hero-shift", reduceMotion ? "0px" : `${Math.min(scrollTop * .075, 48)}px`);
       header?.classList.toggle("is-condensed", scrollTop > 70);
       hero?.classList.toggle("is-scrolled", scrollTop > 24);
     };
     const handleScroll = () => {
       if (!frame) frame = window.requestAnimationFrame(updateScrollEffects);
     };
+
     updateScrollEffects();
     window.addEventListener("scroll", handleScroll, { passive: true });
 
-    const spotlightCards = document.querySelectorAll<HTMLElement>(
-      ".service-card, .page-content-card, .blog-card, .story-grid blockquote, .contact-form"
-    );
-    const spotlightCleanups = [...spotlightCards].map((card) => {
-      const moveSpotlight = (event: PointerEvent) => {
-        const bounds = card.getBoundingClientRect();
-        card.style.setProperty("--spot-x", `${event.clientX - bounds.left}px`);
-        card.style.setProperty("--spot-y", `${event.clientY - bounds.top}px`);
-      };
-      card.addEventListener("pointermove", moveSpotlight);
-      return () => card.removeEventListener("pointermove", moveSpotlight);
-    });
-
     return () => {
-      observer.disconnect();
       window.removeEventListener("scroll", handleScroll);
       if (frame) window.cancelAnimationFrame(frame);
-      spotlightCleanups.forEach((cleanup) => cleanup());
+      controls.forEach((control) => control.stop());
+      cleanups.forEach((cleanup) => cleanup());
     };
   }, []);
 

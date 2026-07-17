@@ -1,8 +1,21 @@
 import type { Metadata } from "next";
+import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import SiteFooter from "../components/site-footer";
 import SiteHeader from "../components/site-header";
 import SiteMotion from "../components/site-motion";
 import "./globals.css";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://selfapplycenter.com"),
@@ -31,7 +44,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${manrope.variable} ${plusJakartaSans.variable}`}>
       <body>
         <SiteHeader />
         <SiteMotion />
