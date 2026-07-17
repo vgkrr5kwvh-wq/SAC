@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
 import SiteFooter from "../components/site-footer";
 import SiteHeader from "../components/site-header";
+import SiteMotion from "../components/site-motion";
 import "./globals.css";
-
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://selfapplycenter.com"),
@@ -38,8 +32,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={outfit.variable}>
+      <body>
         <SiteHeader />
+        <SiteMotion />
         {children}
         <SiteFooter />
       </body>

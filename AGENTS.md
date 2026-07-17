@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-SAC is a Next.js consultancy website using the App Router. Keep routes and page-level UI in `app/`, static images and icons in `public/`, database definitions in `db/`, and automated checks in `tests/`. Cloudflare worker integration lives in `worker/`; deployment settings are stored in `.openai/hosting.json`. Group new application code by feature and colocate route-specific components with their route.
+SAC is a standard Node.js Next.js consultancy website using the App Router. Keep routes and page-level UI in `app/`, static images and icons in `public/`, shared UI in `components/`, and automated checks in `tests/`. Production deployment uses the scripts in `package.json` and the configuration in `next.config.ts`. Group new application code by feature and colocate route-specific components with their route.
 
 Document any new top-level directory in `README.md`. Do not commit generated output, dependency directories, editor metadata, or secrets.
 

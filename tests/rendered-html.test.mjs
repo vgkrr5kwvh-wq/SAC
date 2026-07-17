@@ -1,26 +1,49 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { access, readFile } from "node:fs/promises";
-import test from "node:test";
+import { after, before, test } from "node:test";
+
+const port = 3217;
+const origin = `http://127.0.0.1:${port}`;
+let server;
+let serverOutput = "";
+
+before(async () => {
+  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "127.0.0.1", "-p", String(port)], {
+    cwd: new URL("..", import.meta.url),
+    env: { ...process.env, NODE_ENV: "production" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  server.stdout.on("data", (chunk) => { serverOutput += chunk; });
+  server.stderr.on("data", (chunk) => { serverOutput += chunk; });
+
+  const deadline = Date.now() + 20_000;
+  while (Date.now() < deadline) {
+    if (server.exitCode !== null) throw new Error(`Production server exited early:\n${serverOutput}`);
+    try {
+      const response = await fetch(origin);
+      if (response.ok) return;
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  throw new Error(`Production server did not become ready:\n${serverOutput}`);
+});
+
+after(async () => {
+  if (!server || server.exitCode !== null) return;
+  const exited = new Promise((resolve) => server.once("exit", resolve));
+  server.kill("SIGTERM");
+  await Promise.race([
+    exited,
+    new Promise((resolve) => setTimeout(() => {
+      if (server.exitCode === null) server.kill("SIGKILL");
+      resolve();
+    }, 2_000)),
+  ]);
+});
 
 async function render(path = "/") {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  return worker.fetch(
-    new Request(`http://localhost${path}`, {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
+  return fetch(`${origin}${path}`, { headers: { accept: "text/html" } });
 }
 
 test("server-renders the Self Apply Center homepage", async () => {
@@ -35,6 +58,7 @@ test("server-renders the Self Apply Center homepage", async () => {
   assert.match(html, /USA/);
   assert.match(html, /Canada/);
   assert.match(html, /South Korea/);
+  assert.match(html, /Trust built through clear, practical support/i);
   assert.match(html, /images\.unsplash\.com/);
   assert.match(html, /google\.com\/maps/);
   assert.match(html, /ICEF/);
@@ -121,4 +145,13 @@ test("ships project branding and social-preview assets", async () => {
     access(new URL("../public/self-apply-center-hero.png", import.meta.url)),
     access(new URL("../public/og.png", import.meta.url)),
   ]);
+
+  for (const assetPath of ["/sac-logo.png", "/self-apply-center-hero.png", "/og.png"]) {
+    const response = await fetch(`${origin}${assetPath}`);
+    assert.equal(response.status, 200, assetPath);
+    assert.match(response.headers.get("content-type") ?? "", /^image\//i, assetPath);
+  }
+
+  const missingPage = await render("/this-page-does-not-exist");
+  assert.equal(missingPage.status, 404);
 });

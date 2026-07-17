@@ -30,9 +30,9 @@ const destinations = [
 ];
 
 const testimonials = [
-  ["Aashish Dhakal", "Graduate Instructional Assistant", "The team understood my situation, answered my questions patiently, and made the visa process feel manageable."],
-  ["Rohit Bohora", "USA visa approved", "From selecting the right program to visa guidance, SAC supported me at every step. The interview classes boosted my confidence."],
-  ["Kanchan Poudel", "Canada visa approved", "SAC made my dream of studying in Canada a reality with counselling, application support, and visa appointment guidance."],
+  ["Aashish Dhakal", "Graduate Instructional Assistant", "The team understood my situation, answered my questions patiently, and made the visa process feel manageable.", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80"],
+  ["Rohit Bohora", "USA visa approved", "From selecting the right program to visa guidance, SAC supported me at every step. The interview classes boosted my confidence.", "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80"],
+  ["Kanchan Poudel", "Canada visa approved", "SAC made my dream of studying in Canada a reality with counselling, application support, and visa appointment guidance.", "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80"],
 ];
 
 export default function HomePage() {
@@ -124,6 +124,8 @@ export default function HomePage() {
         <section className="section about-section" id="about">
           <div className="shell split-grid">
             <div className="roadmap-visual" aria-label="A clear application roadmap">
+              <Image className="roadmap-photo" src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=85" alt="Students planning their international education together" fill sizes="(max-width: 1020px) 100vw, 540px" unoptimized />
+              <div className="roadmap-shade" />
               <div className="roadmap-card">
                 <span>YOUR APPLICATION PLAN</span>
                 <h3>Clear next steps</h3>
@@ -191,8 +193,8 @@ export default function HomePage() {
               <h2>Trust built through clear, practical support.</h2>
             </div>
             <div className="story-grid">
-              {testimonials.map(([name, result, quote]) => (
-                <blockquote key={name}><span className="quote-mark">“</span><p>{quote}</p><footer><strong>{name}</strong><span>{result}</span></footer></blockquote>
+              {testimonials.map(([name, result, quote, image]) => (
+                <blockquote key={name}><span className="quote-mark">“</span><p>{quote}</p><footer><Image src={image} alt="" width={52} height={52} unoptimized /><span><strong>{name}</strong><small>{result}</small></span></footer></blockquote>
               ))}
             </div>
           </div>
