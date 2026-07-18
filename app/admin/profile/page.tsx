@@ -4,8 +4,11 @@ import { auth } from "@/auth";
 import {
   formatAdminAccountStatus,
   formatAdminProfileDate,
+  formatAuthenticationStatus,
+  formatSessionExpiry,
 } from "@/lib/admin-profile";
 import { prisma } from "@/lib/prisma";
+import { logoutAction } from "../actions";
 import PasswordChangeForm from "./password-change-form";
 
 export const metadata: Metadata = {
@@ -96,6 +99,48 @@ export default async function AdminProfilePage() {
           </dl>
         </section>
       </div>
+
+      <section
+        className="admin-profile-card"
+        aria-labelledby="session-security-heading"
+      >
+        <h2 id="session-security-heading">Session &amp; Security</h2>
+        <dl className="admin-profile-account admin-security-grid">
+          <div>
+            <dt>Signed-in Email</dt>
+            <dd>{session.user.email}</dd>
+          </div>
+          <div>
+            <dt>Authentication Status</dt>
+            <dd>{formatAuthenticationStatus(Boolean(session.user))}</dd>
+          </div>
+          <div>
+            <dt>Session Type</dt>
+            <dd>JWT</dd>
+          </div>
+          <div>
+            <dt>Session Expiry</dt>
+            <dd className="admin-profile-date">
+              {formatSessionExpiry(session.expires)}
+            </dd>
+          </div>
+          <div>
+            <dt>Account Status</dt>
+            <dd>{formatAdminAccountStatus(administrator.isActive)}</dd>
+          </div>
+        </dl>
+
+        <div className="admin-security-note">
+          <h3>Account Security</h3>
+          <p>Your password is securely hashed and is never displayed.</p>
+        </div>
+
+        <form className="admin-security-actions" action={logoutAction}>
+          <button className="button secondary admin-security-signout" type="submit">
+            Sign Out
+          </button>
+        </form>
+      </section>
 
       <section
         id="change-password"
