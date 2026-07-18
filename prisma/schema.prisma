@@ -7,12 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum NotificationStatus {
-  PENDING
-  SENT
-  FAILED
-}
-
 model Enquiry {
   id                   String             @id @default(cuid()) @db.VarChar(30)
   name                 String             @db.VarChar(120)
@@ -27,6 +21,7 @@ model Enquiry {
   @@index([clientHash, createdAt])
   @@index([email, createdAt])
 }
+
 model PartnerEnquiry {
   id                   String             @id @default(cuid()) @db.VarChar(30)
   partnerType          String             @db.VarChar(50)
@@ -44,4 +39,19 @@ model PartnerEnquiry {
 
   @@index([clientHash, createdAt])
   @@index([workEmail, createdAt])
+}
+
+model AdminUser {
+  id           String   @id @default(cuid()) @db.VarChar(30)
+  email        String   @unique @db.VarChar(191)
+  passwordHash String   @db.VarChar(255)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
 }
