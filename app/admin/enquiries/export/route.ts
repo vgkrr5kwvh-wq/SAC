@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import {
   buildStudentEnquiriesCsv,
   buildStudentExportFilename,
+  limitExportRecords,
 } from "@/lib/admin-enquiry-csv";
 import {
   buildEnquirySearchWhere,
@@ -57,8 +58,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     return serverErrorResponse();
   }
 
-  const truncated = enquiries.length > exportLimit;
-  const csv = buildStudentEnquiriesCsv(enquiries.slice(0, exportLimit));
+  const limitedExport = limitExportRecords(enquiries, exportLimit);
+  const csv = buildStudentEnquiriesCsv(limitedExport.records);
   const filename = buildStudentExportFilename(new Date());
 
   return new Response(csv, {
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,
       "Cache-Control": "private, no-store",
-      "X-Export-Truncated": String(truncated),
+      "X-Export-Truncated": String(limitedExport.truncated),
     },
   });
 }
