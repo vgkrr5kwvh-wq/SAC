@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildPartnerEnquiriesExportUrl,
   buildPartnerEnquiriesUrl,
+  buildPartnerEnquirySearchWhere,
   parsePageParameter,
   sanitizeSearchParameter,
 } from "../lib/admin-partner-enquiry-params";
@@ -36,4 +38,26 @@ test("builds partner pagination URLs while preserving search", () => {
     buildPartnerEnquiriesUrl(3, "Alpine College"),
     "/admin/partner-enquiries?page=3&q=Alpine+College",
   );
+});
+
+test("builds the partner export URL while preserving only search", () => {
+  assert.equal(
+    buildPartnerEnquiriesExportUrl(""),
+    "/admin/partner-enquiries/export",
+  );
+  assert.equal(
+    buildPartnerEnquiriesExportUrl("Alpine College"),
+    "/admin/partner-enquiries/export?q=Alpine+College",
+  );
+});
+
+test("builds the partner enquiry search predicate", () => {
+  assert.deepEqual(buildPartnerEnquirySearchWhere("Alpine"), {
+    OR: [
+      { contactName: { contains: "Alpine" } },
+      { organisation: { contains: "Alpine" } },
+      { workEmail: { contains: "Alpine" } },
+    ],
+  });
+  assert.deepEqual(buildPartnerEnquirySearchWhere(""), {});
 });

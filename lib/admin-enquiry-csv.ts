@@ -38,7 +38,7 @@ export type StudentEnquiryCsvRecord = {
   createdAt: Date;
 };
 
-function normalizeCsvValue(
+export function normalizeCsvValue(
   value: string | null | undefined,
   placeholder = defaultPlaceholder,
 ): string {
@@ -61,9 +61,13 @@ export function escapeCsvCell(
   return `"${protectedValue.replace(/"/g, '""')}"`;
 }
 
-export function formatStudentExportDate(date: Date): string {
+export function formatExportDate(date: Date): string {
   if (Number.isNaN(date.getTime())) return defaultPlaceholder;
   return `${kathmanduDateFormatter.format(date)} ${kathmanduTimeFormatter.format(date)} NPT`;
+}
+
+export function formatStudentExportDate(date: Date): string {
+  return formatExportDate(date);
 }
 
 export function formatNotificationStatusForCsv(
@@ -78,32 +82,52 @@ export function formatNotificationStatusForCsv(
     .replace(/^\w/, (character) => character.toUpperCase());
 }
 
+export function buildCsvDocument(
+  headers: readonly string[],
+  rows: ReadonlyArray<ReadonlyArray<string | null | undefined>>,
+): string {
+  const csvRows = [
+    headers.map((header) => escapeCsvCell(header)).join(","),
+    ...rows.map((row) => row.map((value) => escapeCsvCell(value)).join(",")),
+  ];
+
+  return `${csvBom}${csvRows.join("\r\n")}\r\n`;
+}
+
 export function buildStudentEnquiriesCsv(
   records: StudentEnquiryCsvRecord[],
 ): string {
-  const rows = [
-    studentEnquiryCsvHeaders.map((header) => escapeCsvCell(header)).join(","),
-    ...records.map((record) =>
-      [
-        escapeCsvCell(record.name),
-        escapeCsvCell(record.email),
-        escapeCsvCell(record.interest, destinationPlaceholder),
-        escapeCsvCell(record.message),
-        escapeCsvCell(
-          formatNotificationStatusForCsv(record.notificationStatus),
-        ),
-        escapeCsvCell(formatStudentExportDate(record.createdAt)),
-      ].join(","),
-    ),
-  ];
-
-  return `${csvBom}${rows.join("\r\n")}\r\n`;
+  return buildCsvDocument(
+    studentEnquiryCsvHeaders,
+    records.map((record) => [
+      record.name,
+      record.email,
+      normalizeCsvValue(record.interest, destinationPlaceholder),
+      record.message,
+      formatNotificationStatusForCsv(record.notificationStatus),
+      formatStudentExportDate(record.createdAt),
+    ]),
+  );
 }
 
-export function buildStudentExportFilename(date: Date): string {
+export function buildExportFilename(prefix: string, date: Date): string {
   const parts = kathmanduFilenameFormatter.formatToParts(date);
   const part = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((value) => value.type === type)?.value;
 
-  return `student-enquiries-${part("year")}-${part("month")}-${part("day")}.csv`;
+  return `${prefix}-${part("year")}-${part("month")}-${part("day")}.csv`;
+}
+
+export function buildStudentExportFilename(date: Date): string {
+  return buildExportFilename("student-enquiries", date);
+}
+
+export function limitExportRecords<T>(
+  records: T[],
+  limit = 10_000,
+): { records: T[]; truncated: boolean } {
+  return {
+    records: records.slice(0, limit),
+    truncated: records.length > limit,
+  };
 }

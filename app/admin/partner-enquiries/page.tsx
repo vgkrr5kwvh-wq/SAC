@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  buildPartnerEnquiriesExportUrl,
   buildPartnerEnquiriesUrl,
+  buildPartnerEnquirySearchWhere,
   parsePageParameter,
   sanitizeSearchParameter,
 } from "@/lib/admin-partner-enquiry-params";
@@ -33,15 +35,7 @@ export default async function PartnerEnquiriesPage({
   const parameters = await searchParams;
   const requestedPage = parsePageParameter(parameters.page);
   const query = sanitizeSearchParameter(parameters.q);
-  const where = query
-    ? {
-        OR: [
-          { contactName: { contains: query } },
-          { organisation: { contains: query } },
-          { workEmail: { contains: query } },
-        ],
-      }
-    : {};
+  const where = buildPartnerEnquirySearchWhere(query);
 
   let partnerEnquiryData;
   try {
@@ -89,9 +83,18 @@ export default async function PartnerEnquiriesPage({
           <h1 id="partner-enquiries-heading">Partner Enquiry Management</h1>
           <p>Review partnership enquiries submitted through the public website.</p>
         </div>
-        <Link className="admin-back-link" href="/admin">
-          Back to dashboard
-        </Link>
+        <div className="admin-heading-actions">
+          <Link className="admin-back-link" href="/admin">
+            Back to dashboard
+          </Link>
+          <Link
+            className="button secondary admin-export-link"
+            href={buildPartnerEnquiriesExportUrl(query)}
+            aria-label="Export matching partner enquiries as CSV"
+          >
+            Export CSV
+          </Link>
+        </div>
       </section>
 
       <form
