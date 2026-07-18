@@ -1,63 +1,76 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import {
+  buildBreakdownChartData,
+  buildBreakdownRows,
+  buildHalfOpenDateFilter,
+  buildMonthlyChartData,
+  formatAnalyticsDate,
+  getNepalAnalyticsBoundaries,
+  getNepalMonthlyRange,
+  mergeRecentActivity,
+  type RecentActivity,
+} from "@/lib/admin-dashboard-analytics";
 import { prisma } from "@/lib/prisma";
+import DashboardCharts from "./dashboard-charts";
 
 export const metadata: Metadata = {
   title: "Admin dashboard",
   robots: { index: false, follow: false },
 };
 
-const kathmanduOffsetMilliseconds = 5.75 * 60 * 60 * 1000;
-
-function getKathmanduDateBoundaries(now = new Date()) {
-  const kathmanduTime = new Date(now.getTime() + kathmanduOffsetMilliseconds);
-  const year = kathmanduTime.getUTCFullYear();
-  const month = kathmanduTime.getUTCMonth();
-  const day = kathmanduTime.getUTCDate();
-
-  return {
-    startOfToday: new Date(
-      Date.UTC(year, month, day) - kathmanduOffsetMilliseconds,
-    ),
-    startOfTomorrow: new Date(
-      Date.UTC(year, month, day + 1) - kathmanduOffsetMilliseconds,
-    ),
-    startOfMonth: new Date(
-      Date.UTC(year, month, 1) - kathmanduOffsetMilliseconds,
-    ),
-    startOfNextMonth: new Date(
-      Date.UTC(year, month + 1, 1) - kathmanduOffsetMilliseconds,
-    ),
-  };
-}
-
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Kathmandu",
-});
-
 async function getDashboardData() {
-  const {
-    startOfToday,
-    startOfTomorrow,
-    startOfMonth,
-    startOfNextMonth,
-  } = getKathmanduDateBoundaries();
+  const boundaries = getNepalAnalyticsBoundaries();
+  const today = buildHalfOpenDateFilter(
+    boundaries.startOfToday,
+    boundaries.startOfTomorrow,
+  );
+  const thisWeek = buildHalfOpenDateFilter(
+    boundaries.startOfWeek,
+    boundaries.startOfNextWeek,
+  );
+  const thisMonth = buildHalfOpenDateFilter(
+    boundaries.startOfMonth,
+    boundaries.startOfNextMonth,
+  );
+  const monthlyRange = getNepalMonthlyRange();
 
-  return prisma.$transaction([
+  return Promise.all([
     prisma.enquiry.count(),
+    prisma.enquiry.count({ where: { createdAt: today } }),
+    prisma.enquiry.count({ where: { createdAt: thisWeek } }),
+    prisma.enquiry.count({ where: { createdAt: thisMonth } }),
     prisma.partnerEnquiry.count(),
-    prisma.enquiry.count({
-      where: { createdAt: { gte: startOfToday, lt: startOfTomorrow } },
+    prisma.partnerEnquiry.count({ where: { createdAt: today } }),
+    prisma.partnerEnquiry.count({ where: { createdAt: thisWeek } }),
+    prisma.partnerEnquiry.count({ where: { createdAt: thisMonth } }),
+    prisma.enquiry.groupBy({
+      by: ["notificationStatus"],
+      _count: { _all: true },
+      orderBy: { notificationStatus: "asc" },
     }),
-    prisma.enquiry.count({
-      where: { createdAt: { gte: startOfMonth, lt: startOfNextMonth } },
+    prisma.partnerEnquiry.groupBy({
+      by: ["notificationStatus"],
+      _count: { _all: true },
+      orderBy: { notificationStatus: "asc" },
+    }),
+    prisma.enquiry.groupBy({
+      by: ["interest"],
+      _count: { _all: true },
+      orderBy: [{ _count: { id: "desc" } }, { interest: "asc" }],
+      take: 10,
+    }),
+    prisma.partnerEnquiry.groupBy({
+      by: ["locations"],
+      _count: { _all: true },
+      orderBy: [{ _count: { id: "desc" } }, { locations: "asc" }],
+      take: 10,
     }),
     prisma.enquiry.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
+      take: 10,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       select: {
         id: true,
         name: true,
@@ -67,16 +80,27 @@ async function getDashboardData() {
       },
     }),
     prisma.partnerEnquiry.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
+      take: 10,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       select: {
         id: true,
-        organisation: true,
         contactName: true,
+        organisation: true,
         workEmail: true,
         createdAt: true,
       },
     }),
+    prisma.$queryRaw<Array<{ monthKey: string; count: bigint }>>`
+      SELECT
+        DATE_FORMAT(DATE_ADD(createdAt, INTERVAL 345 MINUTE), '%Y-%m') AS monthKey,
+        COUNT(*) AS count
+      FROM Enquiry
+      WHERE createdAt >= ${monthlyRange.start}
+        AND createdAt < ${monthlyRange.end}
+      GROUP BY monthKey
+      ORDER BY monthKey ASC
+    `,
+    Promise.resolve(monthlyRange.monthKeys),
   ]);
 }
 
@@ -92,140 +116,289 @@ export default async function AdminPage() {
       <section className="admin-error" role="alert">
         <span className="login-eyebrow">Dashboard unavailable</span>
         <h1>We couldn&apos;t load the dashboard</h1>
-        <p>Please refresh the page in a moment. Your enquiry data is safe.</p>
+        <p>Please refresh the page in a moment.</p>
       </section>
     );
   }
 
   const [
-    totalEnquiries,
-    totalPartnerEnquiries,
-    todaysEnquiries,
-    thisMonthsEnquiries,
-    recentEnquiries,
-    recentPartnerEnquiries,
+    totalStudents,
+    studentsToday,
+    studentsThisWeek,
+    studentsThisMonth,
+    totalPartners,
+    partnersToday,
+    partnersThisWeek,
+    partnersThisMonth,
+    studentNotificationGroups,
+    partnerNotificationGroups,
+    studentInterestGroups,
+    partnerLocationGroups,
+    recentStudents,
+    recentPartners,
+    monthlyStudentGroups,
+    monthlyStudentKeys,
   ] = dashboardData;
 
-  const statistics = [
-    { label: "Total Enquiries", value: totalEnquiries },
-    { label: "Partner Enquiries", value: totalPartnerEnquiries },
-    { label: "Today’s Enquiries", value: todaysEnquiries },
-    { label: "This Month", value: thisMonthsEnquiries },
+  const studentSummary = [
+    { label: "Total", value: totalStudents },
+    { label: "Today", value: studentsToday },
+    { label: "This week", value: studentsThisWeek },
+    { label: "This month", value: studentsThisMonth },
   ];
+  const partnerSummary = [
+    { label: "Total", value: totalPartners },
+    { label: "Today", value: partnersToday },
+    { label: "This week", value: partnersThisWeek },
+    { label: "This month", value: partnersThisMonth },
+  ];
+  const studentBreakdown = buildBreakdownRows(
+    studentInterestGroups.map((group) => ({
+      label: group.interest,
+      count: group._count._all,
+    })),
+    totalStudents,
+  );
+  const partnerBreakdown = buildBreakdownRows(
+    partnerLocationGroups.map((group) => ({
+      label: group.locations,
+      count: group._count._all,
+    })),
+    totalPartners,
+  );
+  const studentActivity: RecentActivity[] = recentStudents.map((enquiry) => ({
+    id: enquiry.id,
+    type: "Student",
+    primaryName: enquiry.name,
+    secondaryDescriptor: enquiry.email || enquiry.interest || "Not specified",
+    createdAt: enquiry.createdAt,
+    href: `/admin/enquiries/${encodeURIComponent(enquiry.id)}`,
+  }));
+  const partnerActivity: RecentActivity[] = recentPartners.map((enquiry) => ({
+    id: enquiry.id,
+    type: "Partner",
+    primaryName: enquiry.contactName,
+    secondaryDescriptor: enquiry.organisation || enquiry.workEmail,
+    createdAt: enquiry.createdAt,
+    href: `/admin/partner-enquiries/${encodeURIComponent(enquiry.id)}`,
+  }));
+  const recentActivity = mergeRecentActivity(
+    studentActivity,
+    partnerActivity,
+  );
+  const studentDestinationChart = buildBreakdownChartData(studentBreakdown);
+  const partnerLocationChart = buildBreakdownChartData(partnerBreakdown);
+  const monthlyStudentChart = buildMonthlyChartData(
+    monthlyStudentGroups,
+    monthlyStudentKeys,
+  );
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-dashboard admin-analytics-dashboard">
       <section className="admin-dashboard-heading" aria-labelledby="admin-heading">
         <div>
           <span className="login-eyebrow">Administrator overview</span>
           <h1 id="admin-heading">Dashboard</h1>
-          <p>Monitor recent activity across Self Apply Center enquiries.</p>
+          <p>Monitor enquiry volume, notification delivery, and recent activity.</p>
         </div>
         <p className="admin-signed-in">
           Signed in as <strong>{session.user.email}</strong>
         </p>
       </section>
 
-      <dl className="admin-stat-grid">
-        {statistics.map((statistic) => (
-          <div className="admin-stat-card" key={statistic.label}>
-            <dt>{statistic.label}</dt>
-            <dd>{statistic.value.toLocaleString("en-US")}</dd>
+      <div className="admin-analytics-summary-grid">
+        <SummarySection title="Student Enquiries" statistics={studentSummary} />
+        <SummarySection title="Partner Enquiries" statistics={partnerSummary} />
+        <section className="admin-analytics-card" aria-labelledby="notification-summary-heading">
+          <h2 id="notification-summary-heading">Notification Status</h2>
+          <div className="admin-notification-summary">
+            <NotificationSummary title="Student" groups={studentNotificationGroups} />
+            <NotificationSummary title="Partner" groups={partnerNotificationGroups} />
           </div>
-        ))}
-      </dl>
+        </section>
+      </div>
 
-      <section className="admin-table-card" aria-labelledby="recent-enquiries-heading">
+      <DashboardCharts
+        studentDestinations={studentDestinationChart}
+        partnerLocations={partnerLocationChart}
+        monthlyStudents={monthlyStudentChart}
+      />
+
+      <div className="admin-breakdown-grid">
+        <BreakdownTable
+          heading="Student destination / interest"
+          eyebrow="Student enquiries"
+          labelHeading="Destination / Interest"
+          rows={studentBreakdown}
+          emptyMessage="No student destination data available."
+        />
+        <BreakdownTable
+          heading="Submitted location values"
+          eyebrow="Partner enquiries"
+          labelHeading="Location value"
+          rows={partnerBreakdown}
+          emptyMessage="No partner location data available."
+        />
+      </div>
+
+      <section className="admin-table-card" aria-labelledby="recent-activity-heading">
         <div className="admin-table-heading">
           <div>
-            <span>Student enquiries</span>
-            <h2 id="recent-enquiries-heading">Recent Enquiries</h2>
+            <span>Across all enquiries</span>
+            <h2 id="recent-activity-heading">Recent Activity</h2>
           </div>
-          <small>Latest 5 submissions</small>
+          <small>Latest 10 submissions</small>
         </div>
         <div className="admin-table-scroll">
           <table>
             <thead>
               <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Email</th>
-                <th scope="col">Study Destination</th>
-                <th scope="col">Created Date</th>
+                <th scope="col">Type</th>
+                <th scope="col">Primary Name</th>
+                <th scope="col">Details</th>
+                <th scope="col">Submitted Date</th>
                 <th scope="col"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
-              {recentEnquiries.length ? (
-                recentEnquiries.map((enquiry) => (
-                  <tr key={enquiry.id}>
-                    <td data-label="Name">{enquiry.name}</td>
-                    <td data-label="Email">{enquiry.email}</td>
-                    <td data-label="Study Destination">{enquiry.interest || "Not specified"}</td>
-                    <td data-label="Created Date">{dateFormatter.format(enquiry.createdAt)}</td>
+              {recentActivity.length ? (
+                recentActivity.map((activity) => (
+                  <tr key={`${activity.type}-${activity.id}`}>
+                    <td data-label="Type">{activity.type}</td>
+                    <td data-label="Primary Name">{activity.primaryName}</td>
+                    <td data-label="Details">{activity.secondaryDescriptor}</td>
+                    <td data-label="Submitted Date">
+                      {formatAnalyticsDate(activity.createdAt)}
+                    </td>
                     <td className="admin-table-action">
-                      <button
-                        type="button"
-                        disabled
-                        aria-label="View enquiry details (coming soon)"
+                      <Link
+                        href={activity.href}
+                        aria-label={`View ${activity.type.toLowerCase()} enquiry from ${activity.primaryName}`}
                       >
                         View
-                      </button>
+                      </Link>
                     </td>
                   </tr>
                 ))
               ) : (
-                <tr><td className="admin-empty-row" colSpan={5}>No enquiries yet.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="admin-table-card" aria-labelledby="recent-partners-heading">
-        <div className="admin-table-heading">
-          <div>
-            <span>Partnership activity</span>
-            <h2 id="recent-partners-heading">Recent Partner Enquiries</h2>
-          </div>
-          <small>Latest 5 submissions</small>
-        </div>
-        <div className="admin-table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Institution Name</th>
-                <th scope="col">Contact Person</th>
-                <th scope="col">Work Email</th>
-                <th scope="col">Created Date</th>
-                <th scope="col"><span className="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentPartnerEnquiries.length ? (
-                recentPartnerEnquiries.map((enquiry) => (
-                  <tr key={enquiry.id}>
-                    <td data-label="Institution Name">{enquiry.organisation}</td>
-                    <td data-label="Contact Person">{enquiry.contactName}</td>
-                    <td data-label="Work Email">{enquiry.workEmail}</td>
-                    <td data-label="Created Date">{dateFormatter.format(enquiry.createdAt)}</td>
-                    <td className="admin-table-action">
-                      <button
-                        type="button"
-                        disabled
-                        aria-label="View partner enquiry details (coming soon)"
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr><td className="admin-empty-row" colSpan={5}>No partner enquiries yet.</td></tr>
+                <tr>
+                  <td className="admin-empty-row" colSpan={5}>
+                    No recent activity.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
       </section>
     </div>
+  );
+}
+
+type SummarySectionProps = {
+  title: string;
+  statistics: Array<{ label: string; value: number }>;
+};
+
+function SummarySection({ title, statistics }: SummarySectionProps) {
+  const headingId = `${title.toLowerCase().replace(/\s+/g, "-")}-summary`;
+  return (
+    <section className="admin-analytics-card" aria-labelledby={headingId}>
+      <h2 id={headingId}>{title}</h2>
+      <dl className="admin-analytics-stat-grid">
+        {statistics.map((statistic) => (
+          <div key={statistic.label}>
+            <dt>{statistic.label}</dt>
+            <dd>{statistic.value.toLocaleString("en-US")}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+type NotificationGroup = {
+  notificationStatus: string;
+  _count: { _all: number };
+};
+
+function NotificationSummary({
+  title,
+  groups,
+}: {
+  title: string;
+  groups: NotificationGroup[];
+}) {
+  return (
+    <div>
+      <h3>{title}</h3>
+      {groups.length ? (
+        <dl>
+          {groups.map((group) => (
+            <div key={group.notificationStatus}>
+              <dt>{group.notificationStatus}</dt>
+              <dd>{group._count._all.toLocaleString("en-US")}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p>No notifications yet.</p>
+      )}
+    </div>
+  );
+}
+
+type BreakdownTableProps = {
+  heading: string;
+  eyebrow: string;
+  labelHeading: string;
+  rows: Array<{ label: string; count: number; percentage: string }>;
+  emptyMessage: string;
+};
+
+function BreakdownTable({
+  heading,
+  eyebrow,
+  labelHeading,
+  rows,
+  emptyMessage,
+}: BreakdownTableProps) {
+  const headingId = `${heading.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-heading`;
+  return (
+    <section className="admin-table-card" aria-labelledby={headingId}>
+      <div className="admin-table-heading">
+        <div>
+          <span>{eyebrow}</span>
+          <h2 id={headingId}>{heading}</h2>
+        </div>
+        <small>Top 10 exact values</small>
+      </div>
+      <div className="admin-table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">{labelHeading}</th>
+              <th scope="col">Count</th>
+              <th scope="col">Percentage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length ? (
+              rows.map((row) => (
+                <tr key={row.label}>
+                  <td data-label={labelHeading}>{row.label}</td>
+                  <td data-label="Count">{row.count.toLocaleString("en-US")}</td>
+                  <td data-label="Percentage">{row.percentage}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="admin-empty-row" colSpan={3}>{emptyMessage}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

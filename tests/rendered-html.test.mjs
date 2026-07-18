@@ -70,15 +70,14 @@ test("server-renders the Self Apply Center homepage", async () => {
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });
 
-test("renders maintainable blog posts and adaptive partnership fields", async () => {
+test("renders the database-backed blog and adaptive partnership fields", async () => {
   const blog = await render("/blog");
   const blogHtml = await blog.text();
-  assert.match(blogHtml, /Your 12-month study-abroad application timeline/i);
-  assert.match(blogHtml, /\/blog\/study-abroad-application-timeline/);
+  assert.match(blogHtml, /Straightforward guidance for studying abroad/i);
+  assert.match(blogHtml, /No articles published yet/i);
 
-  const article = await render("/blog/study-abroad-application-timeline");
-  assert.equal(article.status, 200);
-  assert.match(await article.text(), /Starting early gives you time/i);
+  const article = await render("/blog/not-a-published-post");
+  assert.equal(article.status, 404);
 
   const partner = await render("/partner-with-us");
   const partnerHtml = await partner.text();
@@ -108,7 +107,7 @@ test("renders the complete consultancy page set", async () => {
     ["/services", /Complete guidance for every stage/i],
     ["/destinations", /Choose a destination that fits your profile/i],
     ["/success-stories", /Student journeys supported with patience/i],
-    ["/blog", /Straightforward guidance for common study-abroad questions/i],
+    ["/blog", /Straightforward guidance for studying abroad/i],
     ["/events", /Focused sessions for the decisions students face next/i],
     ["/contact", /Talk to a counsellor about your study goal/i],
     ["/partner-with-us", /Build clearer international study pathways/i],

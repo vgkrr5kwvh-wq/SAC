@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import BlogIndex from "../../components/blog-index";
 import PartnerForm from "../../components/partner-form";
 import { sitePages } from "../site-data";
 
@@ -31,7 +30,6 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
   if (!page) notFound();
 
   const isContact = slug === "contact";
-  const isBlog = slug === "blog";
   const isPartner = slug === "partner-with-us";
   const visuals = pageVisuals[slug];
 
@@ -43,7 +41,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
           <div className="breadcrumb"><Link href="/">Home</Link><span>→</span><strong>{page.eyebrow}</strong></div>
         </div>
       </section>
-      {isBlog ? <BlogIndex /> : <section className="section">
+      <section className="section">
         <div className={`shell content-page-grid${page.sections.length > 4 ? " wide" : ""}`}>
           {page.sections.map((section, index) => (
             <article className={`page-content-card${visuals ? " has-media" : ""}`} key={section.title}>
@@ -60,7 +58,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
             </article>
           ))}
         </div>
-      </section>}
+      </section>
       {isPartner && <PartnerForm />}
       <section className="faq-section">
         <div className="shell faq-grid">

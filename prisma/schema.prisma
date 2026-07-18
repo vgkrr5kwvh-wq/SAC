@@ -50,8 +50,33 @@ model AdminUser {
   updatedAt    DateTime @updatedAt
 }
 
+model BlogPost {
+  id              String         @id @default(cuid()) @db.VarChar(30)
+  title           String         @db.VarChar(200)
+  slug            String         @unique @db.VarChar(220)
+  excerpt         String?        @db.VarChar(500)
+  content         String         @db.LongText
+  coverImageUrl   String?        @db.VarChar(2048)
+  status          BlogPostStatus @default(DRAFT)
+  featured        Boolean        @default(false)
+  seoTitle        String?        @db.VarChar(70)
+  metaDescription String?        @db.VarChar(160)
+  publishedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([createdAt])
+  @@index([featured])
+}
+
 enum NotificationStatus {
   PENDING
   SENT
   FAILED
+}
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
 }

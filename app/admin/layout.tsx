@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { logoutAction } from "./actions";
+import AdminNavigation from "./admin-navigation";
 
 export default async function AdminLayout({
   children,
@@ -21,6 +22,7 @@ export default async function AdminLayout({
           </button>
         </form>
       </header>
+      <AdminNavigation />
       <main className="admin-content">{children}</main>
     </div>
   );
