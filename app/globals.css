@@ -318,6 +318,8 @@ h3 { margin-bottom: 10px; font-size: 1.24rem; line-height: 1.3; letter-spacing: 
 .admin-enquiries-page { display: grid; gap: 24px; }
 .admin-back-link { color: var(--blue-dark); font-weight: 700; }
 .admin-back-link:hover { text-decoration: underline; }
+.admin-heading-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+.admin-export-link:focus-visible { outline: 3px solid rgba(2,132,232,.3); outline-offset: 3px; }
 .admin-search { padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--white); box-shadow: var(--shadow-sm); }
 .admin-search label { display: block; margin-bottom: 8px; font-weight: 700; }
 .admin-search > div { display: flex; align-items: stretch; gap: 10px; }
@@ -444,6 +446,8 @@ h3 { margin-bottom: 10px; font-size: 1.24rem; line-height: 1.3; letter-spacing: 
   .admin-header { align-items: flex-start; flex-direction: column; }
   .admin-header form, .admin-logout { width: 100%; }
   .admin-dashboard-heading, .admin-table-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .admin-heading-actions { width: 100%; }
+  .admin-export-link { width: 100%; }
   .admin-signed-in { text-align: left; }
   .admin-stat-grid { grid-template-columns: 1fr; }
   .admin-stat-card { min-height: 122px; }

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import {
+  buildEnquiriesExportUrl,
+  buildEnquirySearchWhere,
   buildEnquiriesUrl,
   parsePageParameter,
   sanitizeSearchParameter,
@@ -35,15 +37,7 @@ export default async function EnquiriesPage({ searchParams }: EnquiriesPageProps
   const parameters = await searchParams;
   const requestedPage = parsePageParameter(parameters.page);
   const query = sanitizeSearchParameter(parameters.q);
-  const where = query
-    ? {
-        OR: [
-          { name: { contains: query } },
-          { email: { contains: query } },
-          { interest: { contains: query } },
-        ],
-      }
-    : {};
+  const where = buildEnquirySearchWhere(query);
 
   let enquiryData;
   try {
@@ -87,7 +81,16 @@ export default async function EnquiriesPage({ searchParams }: EnquiriesPageProps
           <h1 id="enquiries-heading">Enquiry Management</h1>
           <p>Review student enquiries submitted through the public website.</p>
         </div>
-        <Link className="admin-back-link" href="/admin">Back to dashboard</Link>
+        <div className="admin-heading-actions">
+          <Link className="admin-back-link" href="/admin">Back to dashboard</Link>
+          <Link
+            className="button secondary admin-export-link"
+            href={buildEnquiriesExportUrl(query)}
+            aria-label="Export matching student enquiries as CSV"
+          >
+            Export CSV
+          </Link>
+        </div>
       </section>
 
       <form className="admin-search" action="/admin/enquiries" method="get" role="search">

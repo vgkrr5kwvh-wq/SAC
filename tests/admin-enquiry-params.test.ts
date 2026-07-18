@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildEnquiriesExportUrl,
+  buildEnquirySearchWhere,
   buildEnquiriesUrl,
   parsePageParameter,
   sanitizeSearchParameter,
@@ -37,4 +39,23 @@ test("builds pagination URLs while preserving search", () => {
     buildEnquiriesUrl(3, "Jane Doe"),
     "/admin/enquiries?page=3&q=Jane+Doe",
   );
+});
+
+test("builds the student export URL while preserving only search", () => {
+  assert.equal(buildEnquiriesExportUrl(""), "/admin/enquiries/export");
+  assert.equal(
+    buildEnquiriesExportUrl("Jane Doe"),
+    "/admin/enquiries/export?q=Jane+Doe",
+  );
+});
+
+test("builds a field-limited student enquiry search predicate", () => {
+  assert.deepEqual(buildEnquirySearchWhere("Nepal"), {
+    OR: [
+      { name: { contains: "Nepal" } },
+      { email: { contains: "Nepal" } },
+      { interest: { contains: "Nepal" } },
+    ],
+  });
+  assert.deepEqual(buildEnquirySearchWhere(""), {});
 });
