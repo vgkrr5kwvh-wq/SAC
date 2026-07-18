@@ -4,6 +4,8 @@ The Self Apply Center website is a standard Next.js App Router application using
 
 Shared navigation and footer components live in `components/`. Route content is defined in `app/site-data.ts`, while blog articles are maintained in `app/blog-posts.ts`.
 
+Administrative maintenance commands live in `scripts/`. They are intended for explicit, one-time operational use and are not part of the application runtime.
+
 ## Local development
 
 Use Node.js 22.13 or newer within the supported 22.x or 24.x release lines. The project uses npm and the committed `package-lock.json`.
@@ -68,6 +70,18 @@ npm run db:migrate:deploy
 ```
 
 Production deployment must use `prisma migrate deploy`; do not use `prisma db push` as the deployment migration process.
+
+## Administrator provisioning
+
+The administrator provisioning command creates an active administrator or updates the password and reactivates an existing administrator with the same normalized email. It requires the configured `DATABASE_URL`, but does not print connection details, passwords, or password hashes.
+
+Run the command in an interactive terminal. It prompts for the email and securely masks the password while it is entered:
+
+```bash
+npm run admin:create
+```
+
+To prefill the email without placing the password in the environment, set `ADMIN_EMAIL` before running the command. If `ADMIN_EMAIL` is absent, the command prompts for it. Passwords are always collected through the hidden interactive prompt and must contain at least 12 characters, including an uppercase letter, lowercase letter, number, and special character. Run this command only when intentionally creating an administrator or rotating administrator credentials.
 
 ## Deploying to Hostinger with GitHub
 
