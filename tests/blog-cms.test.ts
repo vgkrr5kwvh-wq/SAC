@@ -84,23 +84,25 @@ test("retains the original publication date when a published post becomes a draf
   }), replacement);
 });
 
-test("sanitizes Markdown and disables content images", () => {
+test("sanitizes Markdown and renders only safe HTTPS content images", () => {
   const html = renderToStaticMarkup(createElement(MarkdownContent, {
     content: [
       "<script>alert('unsafe')</script>",
       "<span onclick=\"alert('unsafe')\">raw html</span>",
       "[unsafe](javascript:alert('unsafe'))",
-      "![tracking pixel](https://tracker.example/pixel.png)",
+      "![Campus](https://cdn.example.com/campus.png)",
+      "![unsafe](http://example.com/unsafe.png)",
       "[Safe external link](https://example.com/guide)",
     ].join("\n\n"),
   }));
 
-  assert.doesNotMatch(html, /<script|onclick=|javascript:|<img|tracker\.example/i);
+  assert.doesNotMatch(html, /<script|onclick=|javascript:|unsafe\.png/i);
   assert.doesNotMatch(html, /<span/i);
   assert.match(html, /unsafe/);
   assert.match(html, /href="https:\/\/example\.com\/guide"/);
   assert.match(html, /target="_blank"/);
   assert.match(html, /rel="noopener noreferrer"/);
+  assert.match(html, /<img src="https:\/\/cdn\.example\.com\/campus\.png" alt="Campus" loading="lazy" referrerPolicy="no-referrer"/);
   const headings = renderToStaticMarkup(createElement(MarkdownContent, { content: "# Article heading" }));
   assert.doesNotMatch(headings, /<h1/);
   assert.match(headings, /<h2>Article heading<\/h2>/);

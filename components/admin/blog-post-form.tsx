@@ -28,7 +28,17 @@ export default function BlogPostForm({ postId, initialValues, categories, select
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
   const closePickerRef = useRef<HTMLButtonElement>(null);
+  const pickerRef = useRef<HTMLElement>(null);
+  const pickerTriggerRef = useRef<HTMLElement | null>(null);
   const [picker, setPicker] = useState<"content" | "cover" | null>(null);
+  const openPicker = (target: "content" | "cover") => {
+    pickerTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setPicker(target);
+  };
+  const closePicker = () => {
+    setPicker(null);
+    requestAnimationFrame(() => pickerTriggerRef.current?.focus());
+  };
   const chooseMedia = (asset: BlogMediaOption) => {
     if (picker === "cover" && coverRef.current) coverRef.current.value = asset.url;
     if (picker === "content" && contentRef.current) {
@@ -39,9 +49,23 @@ export default function BlogPostForm({ postId, initialValues, categories, select
       textarea.focus();
       textarea.setSelectionRange(start + markdown.length, start + markdown.length);
     }
-    setPicker(null);
+    closePicker();
   };
-  useEffect(() => { if (picker) closePickerRef.current?.focus(); }, [picker]);
+  useEffect(() => {
+    if (!picker) return;
+    closePickerRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); closePicker(); return; }
+      if (event.key !== "Tab" || !pickerRef.current) return;
+      const focusable = [...pickerRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+      if (!focusable.length) return;
+      const first = focusable[0]; const last = focusable.at(-1) as HTMLElement;
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [picker]);
   const fieldA11y = (name: keyof BlogFormValues, hasHelp = false) => ({
     "aria-invalid": Boolean(error(name)),
     "aria-describedby": [error(name) ? `blog-${name}-error` : "", hasHelp ? `blog-${name}-help` : ""].filter(Boolean).join(" ") || undefined,
@@ -61,11 +85,11 @@ export default function BlogPostForm({ postId, initialValues, categories, select
         </Field>
         <Field label="Content" name="content" error={error("content")} help="Markdown supports headings, emphasis, links, lists, blockquotes, and code blocks." wide>
           <textarea ref={contentRef} id="blog-content" name="content" defaultValue={value("content")} rows={18} required {...fieldA11y("content", true)} />
-          <button className="button secondary admin-media-choose" type="button" onClick={() => setPicker("content")}>Choose from Media Library</button>
+          <button className="button secondary admin-media-choose" type="button" onClick={() => openPicker("content")}>Choose from Media Library</button>
         </Field>
         <Field label="Cover image URL" name="coverImageUrl" error={error("coverImageUrl")}>
           <input ref={coverRef} id="blog-coverImageUrl" name="coverImageUrl" type="url" defaultValue={value("coverImageUrl")} maxLength={2048} placeholder="https://example.com/image.jpg" {...fieldA11y("coverImageUrl")} />
-          <button className="button secondary admin-media-choose" type="button" onClick={() => setPicker("cover")}>Choose from Media Library</button>
+          <button className="button secondary admin-media-choose" type="button" onClick={() => openPicker("cover")}>Choose from Media Library</button>
         </Field>
         <Field label="Status" name="status" error={error("status")}>
           <select id="blog-status" name="status" defaultValue={value("status")} {...fieldA11y("status")}><option value="DRAFT">Draft</option><option value="PUBLISHED">Published</option></select>
@@ -84,7 +108,7 @@ export default function BlogPostForm({ postId, initialValues, categories, select
       </div>
       {state.message ? <p className="admin-profile-message" role="alert">{state.message}</p> : null}
       <SubmitButton label={postId ? "Save changes" : "Create post"} />
-      {picker ? <div className="admin-media-picker-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPicker(null); }} onKeyDown={(event) => { if (event.key === "Escape") setPicker(null); }}><section className="admin-media-picker" role="dialog" aria-modal="true" aria-labelledby="media-picker-title"><header><h2 id="media-picker-title">Choose from Media Library</h2><button ref={closePickerRef} type="button" onClick={() => setPicker(null)} aria-label="Close media library">×</button></header>{media.length ? <div className="admin-media-picker-grid">{media.map((asset) => <button type="button" key={asset.id} onClick={() => chooseMedia(asset)}><img src={asset.url} alt="" width={asset.width} height={asset.height} loading="lazy"/><span>{asset.originalName}</span></button>)}</div> : <p>No uploaded images are available. Upload one in the Media Library first.</p>}</section></div> : null}
+      {picker ? <div className="admin-media-picker-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closePicker(); }}><section ref={pickerRef} className="admin-media-picker" role="dialog" aria-modal="true" aria-labelledby="media-picker-title"><header><h2 id="media-picker-title">Choose from Media Library</h2><button ref={closePickerRef} type="button" onClick={closePicker} aria-label="Close media library">×</button></header>{media.length ? <div className="admin-media-picker-grid">{media.map((asset) => <button type="button" key={asset.id} onClick={() => chooseMedia(asset)}><img src={asset.url} alt="" width={asset.width} height={asset.height} loading="lazy"/><span>{asset.originalName}</span></button>)}</div> : <p>No uploaded images are available. Upload one in the Media Library first.</p>}</section></div> : null}
     </form>
   );
 }
