@@ -540,6 +540,28 @@ h3 { margin-bottom: 10px; font-size: 1.24rem; line-height: 1.3; letter-spacing: 
 .admin-media-document-preview { min-height: 240px; display: grid; place-items: center; color: var(--muted); background: #f6f8fa; font-weight: 700; }
 .admin-media-danger { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px; border-color: #f2b8b5; }
 .admin-media-danger p { margin: 6px 0 0; }
+.admin-media-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 18px; }
+.admin-media-card { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.admin-media-card > a { display: grid; place-items: center; height: 180px; background: #eef3f7; }
+.admin-media-card img { width: 100%; height: 100%; object-fit: cover; }
+.admin-media-card > div { display: grid; gap: 6px; padding: 14px; }
+.admin-media-card small { color: var(--muted); }
+.admin-media-copy-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-media-copy-actions button { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue-dark); cursor: pointer; }
+.admin-media-copy-actions button:focus-visible, .admin-media-card a:focus-visible, .admin-media-picker button:focus-visible, .admin-media-choose:focus-visible { outline: 3px solid rgba(2,132,232,.28); outline-offset: 2px; }
+.admin-media-dropzone { display: grid; gap: 10px; padding: 28px; border: 2px dashed #a9bdcc; border-radius: 12px; text-align: center; background: #f8fafc; }
+.admin-media-dropzone.is-dragging { border-color: var(--blue); background: #edf7fe; }
+.admin-media-dropzone p { margin: 0; color: var(--muted); }
+.admin-media-skeleton { min-height: 240px; border-radius: 14px; background: #e7edf2; animation: media-pulse 1.2s ease-in-out infinite alternate; }
+@keyframes media-pulse { to { opacity: .5; } }
+.admin-media-choose { width: fit-content; margin-top: 4px; }
+.admin-media-picker-backdrop { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(10,25,40,.62); }
+.admin-media-picker { width: min(900px,100%); max-height: 80vh; overflow: auto; padding: 20px; border-radius: 14px; background: #fff; }
+.admin-media-picker header { display: flex; align-items: center; justify-content: space-between; }
+.admin-media-picker header button { border: 0; background: transparent; font-size: 2rem; cursor: pointer; }
+.admin-media-picker-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(150px,1fr)); gap: 12px; }
+.admin-media-picker-grid button { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: #fff; text-align: left; cursor: pointer; }
+.admin-media-picker-grid img { width: 100%; height: 110px; object-fit: cover; }
 @media (max-width: 700px) {
   .admin-media-form-grid,
   .admin-media-detail-grid { grid-template-columns: 1fr; }

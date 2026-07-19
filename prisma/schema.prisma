@@ -42,12 +42,13 @@ model PartnerEnquiry {
 }
 
 model AdminUser {
-  id           String   @id @default(cuid()) @db.VarChar(30)
-  email        String   @unique @db.VarChar(191)
-  passwordHash String   @db.VarChar(255)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id           String       @id @default(cuid()) @db.VarChar(30)
+  email        String       @unique @db.VarChar(191)
+  passwordHash String       @db.VarChar(255)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  mediaAssets  MediaAsset[]
 }
 
 model BlogPost {
@@ -83,6 +84,33 @@ model Category {
   posts       BlogPost[]
 
   @@index([isActive, sortOrder])
+}
+
+model MediaAsset {
+  id           String        @id @default(cuid()) @db.VarChar(30)
+  fileName     String        @db.VarChar(255)
+  originalName String        @db.VarChar(255)
+  url          String        @db.VarChar(2048)
+  secureUrl    String?       @db.VarChar(2048)
+  publicId     String?       @db.VarChar(255)
+  provider     String        @db.VarChar(50)
+  mimeType     String        @db.VarChar(100)
+  size         Int
+  width        Int
+  height       Int
+  altText      String?       @db.VarChar(300)
+  caption      String?       @db.VarChar(1000)
+  folder       String?       @db.VarChar(255)
+  uploadedById String?       @db.VarChar(30)
+  checksum     String        @unique @db.Char(64)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  uploadedBy   AdminUser?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([provider])
+  @@index([folder])
+  @@index([uploadedById])
 }
 
 enum NotificationStatus {

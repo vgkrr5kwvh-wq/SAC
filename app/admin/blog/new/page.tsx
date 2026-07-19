@@ -8,10 +8,14 @@ const emptyPost: BlogFormValues = { title: "", slug: "", excerpt: "", content: "
 
 export default async function NewBlogPostPage() {
   let categories;
+  let media;
   try {
-    categories = await prisma.category.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true, isActive: true } });
+    [categories, media] = await Promise.all([
+      prisma.category.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true, isActive: true } }),
+      prisma.mediaAsset.findMany({ orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 50, select: { id: true, originalName: true, secureUrl: true, url: true, altText: true, width: true, height: true } }),
+    ]);
   } catch {
     return <section className="admin-error" role="alert"><h1>Unable to load the blog editor.</h1><p>Please try again in a moment.</p></section>;
   }
-  return <div className="admin-blog-editor"><header className="admin-dashboard-heading"><div><span className="login-eyebrow">Blog CMS</span><h1>New blog post</h1><p>Draft or publish a Markdown article.</p></div><Link className="admin-back-link" href="/admin/blog">Back to blog list</Link></header><BlogPostForm postId={null} initialValues={emptyPost} categories={categories}/></div>;
+  return <div className="admin-blog-editor"><header className="admin-dashboard-heading"><div><span className="login-eyebrow">Blog CMS</span><h1>New blog post</h1><p>Draft or publish a Markdown article.</p></div><Link className="admin-back-link" href="/admin/blog">Back to blog list</Link></header><BlogPostForm postId={null} initialValues={emptyPost} categories={categories} media={media.map(({ secureUrl, url, ...asset }) => ({ ...asset, url: secureUrl ?? url }))}/></div>;
 }

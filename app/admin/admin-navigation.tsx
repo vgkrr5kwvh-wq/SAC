@@ -8,6 +8,7 @@ const items = [
   { href: "/admin/enquiries", label: "Student enquiries" },
   { href: "/admin/partner-enquiries", label: "Partner enquiries" },
   { href: "/admin/blog", label: "Blog" },
+  { href: "/admin/media", label: "Media" },
   { href: "/admin/profile", label: "Profile" },
 ];
 

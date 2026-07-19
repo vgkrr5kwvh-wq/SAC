@@ -1,6 +1,7 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Cloudinary assets are selected dynamically by administrators. */
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { initialBlogFormState, saveBlogPostAction } from "@/app/admin/blog/actions";
 
@@ -16,13 +17,31 @@ export type BlogFormValues = {
   metaDescription: string;
   publishedAt: string;
 };
+export type BlogMediaOption = { id: string; originalName: string; url: string; altText: string | null; width: number; height: number };
 
-export default function BlogPostForm({ postId, initialValues, categories, selectedCategoryIds = [] }: { postId: string | null; initialValues: BlogFormValues; categories: Array<{ id: string; name: string; isActive: boolean }>; selectedCategoryIds?: string[] }) {
+export default function BlogPostForm({ postId, initialValues, categories, selectedCategoryIds = [], media = [] }: { postId: string | null; initialValues: BlogFormValues; categories: Array<{ id: string; name: string; isActive: boolean }>; selectedCategoryIds?: string[]; media?: BlogMediaOption[] }) {
   const action = saveBlogPostAction.bind(null, postId);
   const [state, formAction] = useActionState(action, initialBlogFormState);
   const value = (name: keyof BlogFormValues) => state.values[name] ?? String(initialValues[name]);
   const error = (name: keyof BlogFormValues) => state.errors[name]?.[0];
   const selectedCategories = state.values.categoryIds !== undefined ? state.values.categoryIds.split(",").filter(Boolean) : selectedCategoryIds;
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
+  const closePickerRef = useRef<HTMLButtonElement>(null);
+  const [picker, setPicker] = useState<"content" | "cover" | null>(null);
+  const chooseMedia = (asset: BlogMediaOption) => {
+    if (picker === "cover" && coverRef.current) coverRef.current.value = asset.url;
+    if (picker === "content" && contentRef.current) {
+      const textarea = contentRef.current;
+      const start = textarea.selectionStart;
+      const markdown = `![${asset.altText ?? asset.originalName}](${asset.url})`;
+      textarea.value = `${textarea.value.slice(0, start)}${markdown}${textarea.value.slice(textarea.selectionEnd)}`;
+      textarea.focus();
+      textarea.setSelectionRange(start + markdown.length, start + markdown.length);
+    }
+    setPicker(null);
+  };
+  useEffect(() => { if (picker) closePickerRef.current?.focus(); }, [picker]);
   const fieldA11y = (name: keyof BlogFormValues, hasHelp = false) => ({
     "aria-invalid": Boolean(error(name)),
     "aria-describedby": [error(name) ? `blog-${name}-error` : "", hasHelp ? `blog-${name}-help` : ""].filter(Boolean).join(" ") || undefined,
@@ -41,10 +60,12 @@ export default function BlogPostForm({ postId, initialValues, categories, select
           <textarea id="blog-excerpt" name="excerpt" defaultValue={value("excerpt")} maxLength={500} rows={3} {...fieldA11y("excerpt")} />
         </Field>
         <Field label="Content" name="content" error={error("content")} help="Markdown supports headings, emphasis, links, lists, blockquotes, and code blocks." wide>
-          <textarea id="blog-content" name="content" defaultValue={value("content")} rows={18} required {...fieldA11y("content", true)} />
+          <textarea ref={contentRef} id="blog-content" name="content" defaultValue={value("content")} rows={18} required {...fieldA11y("content", true)} />
+          <button className="button secondary admin-media-choose" type="button" onClick={() => setPicker("content")}>Choose from Media Library</button>
         </Field>
         <Field label="Cover image URL" name="coverImageUrl" error={error("coverImageUrl")}>
-          <input id="blog-coverImageUrl" name="coverImageUrl" type="url" defaultValue={value("coverImageUrl")} maxLength={2048} placeholder="https://example.com/image.jpg" {...fieldA11y("coverImageUrl")} />
+          <input ref={coverRef} id="blog-coverImageUrl" name="coverImageUrl" type="url" defaultValue={value("coverImageUrl")} maxLength={2048} placeholder="https://example.com/image.jpg" {...fieldA11y("coverImageUrl")} />
+          <button className="button secondary admin-media-choose" type="button" onClick={() => setPicker("cover")}>Choose from Media Library</button>
         </Field>
         <Field label="Status" name="status" error={error("status")}>
           <select id="blog-status" name="status" defaultValue={value("status")} {...fieldA11y("status")}><option value="DRAFT">Draft</option><option value="PUBLISHED">Published</option></select>
@@ -63,6 +84,7 @@ export default function BlogPostForm({ postId, initialValues, categories, select
       </div>
       {state.message ? <p className="admin-profile-message" role="alert">{state.message}</p> : null}
       <SubmitButton label={postId ? "Save changes" : "Create post"} />
+      {picker ? <div className="admin-media-picker-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPicker(null); }} onKeyDown={(event) => { if (event.key === "Escape") setPicker(null); }}><section className="admin-media-picker" role="dialog" aria-modal="true" aria-labelledby="media-picker-title"><header><h2 id="media-picker-title">Choose from Media Library</h2><button ref={closePickerRef} type="button" onClick={() => setPicker(null)} aria-label="Close media library">×</button></header>{media.length ? <div className="admin-media-picker-grid">{media.map((asset) => <button type="button" key={asset.id} onClick={() => chooseMedia(asset)}><img src={asset.url} alt="" width={asset.width} height={asset.height} loading="lazy"/><span>{asset.originalName}</span></button>)}</div> : <p>No uploaded images are available. Upload one in the Media Library first.</p>}</section></div> : null}
     </form>
   );
 }
