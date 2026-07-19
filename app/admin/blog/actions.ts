@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { auth } from "@/auth";
-import { parseBlogPostInput } from "@/lib/blog/validation";
+import { parseBlogPostInput, resolveBlogPublishedAt } from "@/lib/blog/validation";
 import { prisma } from "@/lib/prisma";
 
 export type BlogFormState = {
@@ -62,7 +62,7 @@ export async function saveBlogPostAction(
   try {
     const existing = postId ? await prisma.blogPost.findUnique({
       where: { id: postId },
-      select: { slug: true, publishedAt: true },
+      select: { slug: true, status: true, publishedAt: true },
     }) : null;
     if (postId && !existing) return failure("Unable to save blog post.");
 
@@ -74,9 +74,14 @@ export async function saveBlogPostAction(
 
     const data = {
       ...input,
-      publishedAt: input.status === "DRAFT" && !input.publishedAt
-        ? existing?.publishedAt ?? null
-        : input.publishedAt,
+      publishedAt: resolveBlogPublishedAt({
+        nextStatus: input.status,
+        submittedPublishedAt: input.status === "DRAFT" && !input.publishedAt
+          ? existing?.publishedAt ?? null
+          : input.publishedAt,
+        existingStatus: existing?.status,
+        existingPublishedAt: existing?.publishedAt,
+      }),
     };
     const post = postId
       ? await prisma.blogPost.update({ where: { id: postId }, data, select: { id: true, slug: true } })

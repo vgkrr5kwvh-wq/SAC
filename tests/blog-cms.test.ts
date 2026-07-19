@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import MarkdownContent from "../components/blog/markdown-content";
 import { formatNepalDateTimeInput, parseNepalDateTimeInput } from "../lib/blog/dates";
 import { estimateReadingTime } from "../lib/blog/reading-time";
 import { createBlogSlug } from "../lib/blog/slug";
-import { blogPostInputSchema, isBlogPostPublic, parseBlogPostInput } from "../lib/blog/validation";
+import { blogPostInputSchema, isBlogPostPublic, parseBlogPostInput, resolveBlogPublishedAt } from "../lib/blog/validation";
 
 test("normalizes blog slugs", () => {
   assert.equal(createBlogSlug("Study in USA 2026"), "study-in-usa-2026");
@@ -53,4 +56,40 @@ test("converts Nepal date-time input independently of server timezone", () => {
   assert.equal(date?.toISOString(), "2026-07-18T10:47:00.000Z");
   assert.equal(formatNepalDateTimeInput(date), "2026-07-18T16:32");
   assert.equal(parseNepalDateTimeInput("2026-02-30T10:00"), null);
+});
+
+test("retains the original publication date when a published post becomes a draft", () => {
+  const original = new Date("2026-07-01T06:15:00.000Z");
+  const replacement = new Date("2026-07-15T06:15:00.000Z");
+  assert.equal(resolveBlogPublishedAt({
+    nextStatus: "DRAFT",
+    submittedPublishedAt: replacement,
+    existingStatus: "PUBLISHED",
+    existingPublishedAt: original,
+  }), original);
+  assert.equal(resolveBlogPublishedAt({
+    nextStatus: "PUBLISHED",
+    submittedPublishedAt: replacement,
+    existingStatus: "DRAFT",
+    existingPublishedAt: null,
+  }), replacement);
+});
+
+test("sanitizes Markdown and disables content images", () => {
+  const html = renderToStaticMarkup(createElement(MarkdownContent, {
+    content: [
+      "<script>alert('unsafe')</script>",
+      "<span onclick=\"alert('unsafe')\">raw html</span>",
+      "[unsafe](javascript:alert('unsafe'))",
+      "![tracking pixel](https://tracker.example/pixel.png)",
+      "[Safe external link](https://example.com/guide)",
+    ].join("\n\n"),
+  }));
+
+  assert.doesNotMatch(html, /<script|onclick=|javascript:|<img|tracker\.example/i);
+  assert.doesNotMatch(html, /<span/i);
+  assert.match(html, /unsafe/);
+  assert.match(html, /href="https:\/\/example\.com\/guide"/);
+  assert.match(html, /target="_blank"/);
+  assert.match(html, /rel="noopener noreferrer"/);
 });

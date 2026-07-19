@@ -11,7 +11,7 @@ let serverOutput = "";
 before(async () => {
   server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "127.0.0.1", "-p", String(port)], {
     cwd: new URL("..", import.meta.url),
-    env: { ...process.env, NODE_ENV: "production" },
+    env: { ...process.env, NODE_ENV: "production", BLOG_RENDER_TEST_MODE: "fixture" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   server.stdout.on("data", (chunk) => { serverOutput += chunk; });
@@ -43,7 +43,11 @@ after(async () => {
 });
 
 async function render(path = "/") {
-  return fetch(`${origin}${path}`, { headers: { accept: "text/html" } });
+  const response = await fetch(`${origin}${path}`, { headers: { accept: "text/html" } });
+  if (response.status >= 500) {
+    throw new Error(`Rendering ${path} returned ${response.status}.\nServer output:\n${serverOutput}`);
+  }
+  return response;
 }
 
 test("server-renders the Self Apply Center homepage", async () => {
@@ -74,10 +78,14 @@ test("renders the database-backed blog and adaptive partnership fields", async (
   const blog = await render("/blog");
   const blogHtml = await blog.text();
   assert.match(blogHtml, /Straightforward guidance for studying abroad/i);
-  assert.match(blogHtml, /No articles published yet/i);
+  assert.match(blogHtml, /Deterministic rendered blog fixture/i);
 
-  const article = await render("/blog/not-a-published-post");
-  assert.equal(article.status, 404);
+  const article = await render("/blog/deterministic-rendered-blog-fixture");
+  assert.equal(article.status, 200);
+  assert.match(await article.text(), /This content does not use the configured database/i);
+
+  const missingArticle = await render("/blog/not-a-published-post");
+  assert.equal(missingArticle.status, 404);
 
   const partner = await render("/partner-with-us");
   const partnerHtml = await partner.text();

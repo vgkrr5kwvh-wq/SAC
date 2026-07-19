@@ -2,18 +2,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import MarkdownContent from "@/components/blog/markdown-content";
 import { blogDateFormatter } from "@/lib/blog/dates";
 import { formatReadingTime } from "@/lib/blog/reading-time";
-import { prisma } from "@/lib/prisma";
+import { getPublicBlogPost } from "@/lib/blog/queries";
 
 const siteUrl = "https://selfapplycenter.com";
-const publicSelect = { title: true, slug: true, excerpt: true, content: true, coverImageUrl: true, seoTitle: true, metaDescription: true, publishedAt: true, updatedAt: true } as const;
-
-async function findPublicPost(slug: string) {
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 220) return null;
-  return prisma.blogPost.findFirst({ where: { slug, status: "PUBLISHED", publishedAt: { not: null, lte: new Date() } }, select: publicSelect });
-}
+const findPublicPost = cache((slug: string) => getPublicBlogPost(slug));
 
 export async function generateMetadata({ params }: { params: Promise<{ postSlug: string }> }): Promise<Metadata> {
   const post = await findPublicPost((await params).postSlug);

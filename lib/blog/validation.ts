@@ -48,3 +48,20 @@ export function parseBlogPostInput(values: Record<string, unknown>, now = new Da
 export function isBlogPostPublic(post: { status: string; publishedAt: Date | null }, now = new Date()): boolean {
   return post.status === "PUBLISHED" && Boolean(post.publishedAt && post.publishedAt <= now);
 }
+
+export function resolveBlogPublishedAt({
+  nextStatus,
+  submittedPublishedAt,
+  existingStatus,
+  existingPublishedAt,
+}: {
+  nextStatus: "DRAFT" | "PUBLISHED";
+  submittedPublishedAt: Date | null;
+  existingStatus?: "DRAFT" | "PUBLISHED";
+  existingPublishedAt?: Date | null;
+}): Date | null {
+  if (existingStatus === "PUBLISHED" && nextStatus === "DRAFT") {
+    return existingPublishedAt ?? null;
+  }
+  return submittedPublishedAt;
+}
