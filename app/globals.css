@@ -529,6 +529,14 @@ h3 { margin-bottom: 10px; font-size: 1.24rem; line-height: 1.3; letter-spacing: 
 .admin-blog-field-error { margin: 0; color: #b91c1c; font-size: .88rem; }
 .admin-blog-checkbox { align-self: center; display: flex; gap: .65rem; align-items: center; min-height: 2.75rem; }
 .admin-blog-checkbox input { width: 1.1rem; height: 1.1rem; }
+.admin-category-options { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; }
+.admin-category-options label { font-weight: 600; }
+.admin-category-form { display: grid; gap: .8rem; padding: 1rem; }
+.admin-category-form label { display: grid; gap: .35rem; font-weight: 700; }
+.admin-category-form :is(input, textarea) { padding: .7rem; border: 1px solid var(--line); border-radius: .6rem; font: inherit; }
+.admin-inline-form { display: inline; margin-left: .6rem; }
+.blog-category-badges { display: flex; flex-wrap: wrap; gap: .4rem; margin: .7rem 0; }
+.blog-category-badges a { padding: .25rem .55rem; border-radius: 999px; background: rgba(2,132,232,.1); color: var(--blue); font-size: .78rem; font-weight: 800; text-decoration: none; }
 .admin-blog-form :is(input, textarea, select):focus-visible, .admin-navigation a:focus-visible { outline: 3px solid rgba(2, 132, 232, .28); outline-offset: 2px; }
 .cms-blog-card { overflow: hidden; }
 .cms-blog-cover { aspect-ratio: 16 / 9; overflow: hidden; background: linear-gradient(135deg, var(--blue), #0f3f75); }

@@ -64,10 +64,25 @@ model BlogPost {
   publishedAt     DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  categories      Category[]
 
   @@index([status, publishedAt])
   @@index([createdAt])
   @@index([featured])
+}
+
+model Category {
+  id          String     @id @default(cuid()) @db.VarChar(30)
+  name        String     @db.VarChar(120)
+  slug        String     @unique @db.VarChar(160)
+  description String?    @db.VarChar(500)
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  posts       BlogPost[]
+
+  @@index([isActive, sortOrder])
 }
 
 enum NotificationStatus {

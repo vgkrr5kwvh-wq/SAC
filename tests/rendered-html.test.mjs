@@ -87,6 +87,12 @@ test("renders the database-backed blog and adaptive partnership fields", async (
   const missingArticle = await render("/blog/not-a-published-post");
   assert.equal(missingArticle.status, 404);
 
+  const category = await render("/blog/category/study-guides");
+  assert.equal(category.status, 200);
+  assert.match(await category.text(), /Deterministic rendered blog fixture/i);
+  const missingCategory = await render("/blog/category/inactive-or-missing");
+  assert.equal(missingCategory.status, 404);
+
   const partner = await render("/partner-with-us");
   const partnerHtml = await partner.text();
   assert.match(partnerHtml, /University or institution name/i);

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { auth } from "@/auth";
+import { parseCategoryIds } from "@/lib/blog/category-validation";
 import { parseBlogPostInput, resolveBlogPublishedAt } from "@/lib/blog/validation";
 import { prisma } from "@/lib/prisma";
 
@@ -46,11 +47,13 @@ export async function saveBlogPostAction(
   if (!session?.user) return failure("Unable to save blog post.");
 
   let input;
+  let categoryIds: string[];
   try {
     input = parseBlogPostInput({
       ...values,
       featured: formData.get("featured") === "on",
     });
+    categoryIds = parseCategoryIds(formData.getAll("categoryIds"));
   } catch (error) {
     if (error instanceof ZodError) {
       const flattened = error.flatten();
@@ -62,7 +65,7 @@ export async function saveBlogPostAction(
   try {
     const existing = postId ? await prisma.blogPost.findUnique({
       where: { id: postId },
-      select: { slug: true, status: true, publishedAt: true },
+      select: { slug: true, status: true, publishedAt: true, categories: { select: { id: true, slug: true } } },
     }) : null;
     if (postId && !existing) return failure("Unable to save blog post.");
 
@@ -71,6 +74,9 @@ export async function saveBlogPostAction(
       select: { id: true },
     });
     if (conflict) return failure("Please correct the highlighted fields.", { slug: ["This slug is already in use."] });
+    const existingCategoryIds = existing?.categories.map((category) => category.id) ?? [];
+    const validCategories = await prisma.category.count({ where: { id: { in: categoryIds }, OR: [{ isActive: true }, { id: { in: existingCategoryIds } }] } });
+    if (validCategories !== categoryIds.length) return failure("Please correct the highlighted fields.", { categoryIds: ["Select valid active categories."] });
 
     const data = {
       ...input,
@@ -84,13 +90,14 @@ export async function saveBlogPostAction(
       }),
     };
     const post = postId
-      ? await prisma.blogPost.update({ where: { id: postId }, data, select: { id: true, slug: true } })
-      : await prisma.blogPost.create({ data, select: { id: true, slug: true } });
+      ? await prisma.blogPost.update({ where: { id: postId }, data: { ...data, categories: { set: categoryIds.map((id) => ({ id })) } }, select: { id: true, slug: true } })
+      : await prisma.blogPost.create({ data: { ...data, categories: { connect: categoryIds.map((id) => ({ id })) } }, select: { id: true, slug: true } });
 
     revalidatePath("/admin/blog");
     revalidatePath("/blog");
     revalidatePath(`/blog/${post.slug}`);
     if (existing?.slug && existing.slug !== post.slug) revalidatePath(`/blog/${existing.slug}`);
+    for (const category of existing?.categories ?? []) revalidatePath(`/blog/category/${category.slug}`);
     redirect(`/admin/blog/${post.id}/edit?saved=1`);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
