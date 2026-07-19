@@ -1,6 +1,7 @@
 import type { MediaStorageProvider, MediaUploadInput, StoredMediaAsset, StorageDeleteResult } from "./types";
 import { createHash } from "node:crypto";
 import { mediaCreateSchema } from "./validation";
+import { getCloudinaryConfig } from "./cloudinary-config";
 
 function fileNameFromUrl(url: string, fallback: string): string {
   const segment = new URL(url).pathname.split("/").filter(Boolean).at(-1);
@@ -43,21 +44,13 @@ export function getMediaStorageProvider(provider: string): MediaStorageProvider 
   return null;
 }
 
-function cloudinaryConfig() {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
-  if (!cloudName || !apiKey || !apiSecret) throw new Error("Cloudinary is not configured");
-  return { cloudName, apiKey, apiSecret };
-}
-
 function signature(parameters: Record<string, string>, secret: string) {
   const value = Object.entries(parameters).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${key}=${item}`).join("&");
   return createHash("sha1").update(value + secret).digest("hex");
 }
 
 export async function uploadToCloudinary(file: File, folder = "sac/media") {
-  const config = cloudinaryConfig();
+  const config = getCloudinaryConfig();
   const timestamp = String(Math.floor(Date.now() / 1000));
   const parameters = { folder, overwrite: "false", timestamp, unique_filename: "true" };
   const body = new FormData();
@@ -74,7 +67,7 @@ export const cloudinaryStorageProvider: MediaStorageProvider = {
   async delete(asset) {
     if (!asset.publicId) return { status: "failed" };
     try {
-      const config = cloudinaryConfig(); const timestamp = String(Math.floor(Date.now() / 1000));
+      const config = getCloudinaryConfig(); const timestamp = String(Math.floor(Date.now() / 1000));
       const parameters = { public_id: asset.publicId, timestamp };
       const body = new URLSearchParams({ ...parameters, api_key: config.apiKey, signature: signature(parameters, config.apiSecret) });
       const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(config.cloudName)}/image/destroy`, { method: "POST", body });

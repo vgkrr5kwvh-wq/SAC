@@ -8,6 +8,7 @@ import { canDeleteMediaRecord, getMediaStorageProvider, uploadToCloudinary } fro
 import { readImageDimensions } from "@/lib/media/image-metadata";
 import { hasAuthenticatedMediaAdmin, isMediaAssetId, mediaMetadataSchema, validateImageFile } from "@/lib/media/validation";
 import { prisma } from "@/lib/prisma";
+import { CloudinaryConfigurationError } from "@/lib/media/cloudinary-config-values";
 
 export type MediaFormState = {
   message: string;
@@ -43,6 +44,7 @@ export async function createMediaAction(_state: MediaFormState, formData: FormDa
     redirect(`/admin/media/${asset.id}?created=1`);
   } catch (error) {
     if (error && typeof error === "object" && "digest" in error) throw error;
+    if (error instanceof CloudinaryConfigurationError) return genericState(error.message);
     return genericState("Unable to add media asset.");
   }
 }

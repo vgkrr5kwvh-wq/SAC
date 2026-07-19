@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { buildMediaAdminUrl, buildMediaSearchWhere, formatDimensions, formatFileSize, parseMediaPage, parseMediaSearch, parseMediaType } from "../lib/media/params";
 import { canDeleteMediaRecord, externalStorageProvider, getMediaStorageProvider, normalizeExternalResult } from "../lib/media/storage";
 import { hasAuthenticatedMediaAdmin, isMediaAssetId, isPublishedMediaReference, isSafeMediaImageUrl, mediaCreateSchema, mediaDuplicateKey, mediaMetadataSchema, validateImageFile, validateMediaUpload } from "../lib/media/validation";
 import { readImageDimensions } from "../lib/media/image-metadata";
+import { CloudinaryConfigurationError, parseCloudinaryConfig } from "../lib/media/cloudinary-config-values";
 
 const validImage = {
   url: "https://cdn.example.com/media/campus.webp",
@@ -101,6 +103,30 @@ test("validates upload MIME and maximum size", () => {
   assert.equal(validateImageFile(new File(["image"], "campus.png", { type: "image/png" })), null);
   assert.match(validateImageFile(new File(["text"], "notes.txt", { type: "text/plain" })) ?? "", /JPEG/);
   assert.match(validateImageFile(new File([new Uint8Array(10 * 1024 * 1024 + 1)], "large.png", { type: "image/png" })) ?? "", /10 MB/);
+});
+
+test("reports every missing Cloudinary environment variable without exposing values", () => {
+  assert.throws(
+    () => parseCloudinaryConfig({ CLOUDINARY_CLOUD_NAME: " ", CLOUDINARY_API_KEY: undefined, CLOUDINARY_API_SECRET: "" }),
+    (error) => error instanceof CloudinaryConfigurationError
+      && error.message.includes("CLOUDINARY_CLOUD_NAME")
+      && error.message.includes("CLOUDINARY_API_KEY")
+      && error.message.includes("CLOUDINARY_API_SECRET"),
+  );
+});
+
+test("parses trimmed Cloudinary server configuration", () => {
+  assert.deepEqual(parseCloudinaryConfig({
+    CLOUDINARY_CLOUD_NAME: " sac-cloud ",
+    CLOUDINARY_API_KEY: " key-123 ",
+    CLOUDINARY_API_SECRET: " secret-456 ",
+  }), { cloudName: "sac-cloud", apiKey: "key-123", apiSecret: "secret-456" });
+});
+
+test("does not reference Cloudinary secrets in Media Library client components", () => {
+  for (const file of ["app/admin/media/media-form.tsx", "app/admin/media/media-card-actions.tsx", "components/admin/blog-post-form.tsx"]) {
+    assert.doesNotMatch(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), /CLOUDINARY_API_SECRET|NEXT_PUBLIC_CLOUDINARY/);
+  }
 });
 
 test("reads and validates PNG dimensions", () => {
