@@ -49,6 +49,10 @@ export function isBlogPostPublic(post: { status: string; publishedAt: Date | nul
   return post.status === "PUBLISHED" && Boolean(post.publishedAt && post.publishedAt <= now);
 }
 
+export function buildPublicBlogWhere(now = new Date()) {
+  return { status: "PUBLISHED" as const, publishedAt: { not: null, lte: now } };
+}
+
 export function resolveBlogPublishedAt({
   nextStatus,
   submittedPublishedAt,

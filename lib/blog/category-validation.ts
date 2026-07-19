@@ -19,7 +19,12 @@ export function canDeleteCategory(usageCount: number): boolean {
   return Number.isInteger(usageCount) && usageCount === 0;
 }
 
-export function buildCategorySeo(category: { name: string; slug: string; description: string | null }) {
-  const description = category.description || `Read ${category.name} articles from Self Apply Center.`;
-  return { title: category.name, description, canonical: `/blog/category/${category.slug}` };
+export function isCategoryId(value: unknown): value is string {
+  return typeof value === "string" && /^c[a-z0-9]{20,29}$/.test(value);
+}
+
+export function buildCategorySeo(category: { name: string; slug: string; description: string | null }, page = 1) {
+  const description = (category.description || `Read ${category.name} articles from Self Apply Center.`).slice(0, 160);
+  const base = `/blog/category/${category.slug}`;
+  return { title: category.name, description, canonical: page > 1 ? `${base}?page=${page}` : base };
 }

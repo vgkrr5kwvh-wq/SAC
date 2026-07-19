@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { buildPublicBlogWhere } from "./validation";
 
 export const publicBlogPostSelect = {
   title: true,
@@ -33,17 +35,17 @@ function isRenderedTestFixtureEnabled(): boolean {
   return process.env.BLOG_RENDER_TEST_MODE === "fixture";
 }
 
-export async function getPublicCategory(slug: string) {
+export const getPublicCategory = cache(async function getPublicCategory(slug: string) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 160) return null;
   if (isRenderedTestFixtureEnabled()) return slug === "study-guides" ? { name: "Study Guides", slug: "study-guides", description: "Deterministic category." } : null;
   return prisma.category.findFirst({ where: { slug, isActive: true }, select: { name: true, slug: true, description: true } });
-}
+});
 
 export async function getPublicCategoryPage(slug: string, page: number, pageSize: number, now = new Date()) {
   const category = await getPublicCategory(slug);
   if (!category) return null;
   if (isRenderedTestFixtureEnabled()) return { category, total: 1, posts: page === 1 ? [renderedTestPost] : [] };
-  const where = { status: "PUBLISHED" as const, publishedAt: { not: null, lte: now }, categories: { some: { slug, isActive: true } } };
+  const where = { ...buildPublicBlogWhere(now), categories: { some: { slug, isActive: true } } };
   const [total, posts] = await prisma.$transaction([prisma.blogPost.count({ where }), prisma.blogPost.findMany({ where, orderBy: [{ featured: "desc" }, { publishedAt: "desc" }, { id: "desc" }], skip: (page - 1) * pageSize, take: pageSize, select: publicBlogPostSelect })]);
   return { category, total, posts };
 }
@@ -54,10 +56,7 @@ export async function getPublicBlogPage(page: number, pageSize: number, now = ne
     return { total: 1, posts };
   }
 
-  const where = {
-    status: "PUBLISHED" as const,
-    publishedAt: { not: null, lte: now },
-  };
+  const where = buildPublicBlogWhere(now);
   const [total, posts] = await prisma.$transaction([
     prisma.blogPost.count({ where }),
     prisma.blogPost.findMany({
@@ -78,8 +77,7 @@ export async function getPublicBlogPost(slug: string, now = new Date()) {
   return prisma.blogPost.findFirst({
     where: {
       slug,
-      status: "PUBLISHED",
-      publishedAt: { not: null, lte: now },
+      ...buildPublicBlogWhere(now),
     },
     select: publicBlogPostSelect,
   });

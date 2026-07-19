@@ -17,11 +17,17 @@ export async function generateMetadata({ params }: { params: Promise<{ postSlug:
   const title = post.seoTitle || post.title;
   const description = post.metaDescription || post.excerpt || undefined;
   const canonical = `/blog/${post.slug}`;
-  return { title, description, alternates: { canonical }, robots: { index: true, follow: true }, openGraph: { type: "article", title, description, url: canonical, publishedTime: post.publishedAt.toISOString(), modifiedTime: post.updatedAt.toISOString(), images: post.coverImageUrl ? [{ url: post.coverImageUrl, alt: post.title }] : undefined } };
+  const images = post.coverImageUrl ? [{ url: post.coverImageUrl, alt: post.title }] : [{ url: "/og.png", alt: "Self Apply Center study-abroad guidance" }];
+  return { title, description, alternates: { canonical }, robots: { index: true, follow: true }, openGraph: { type: "article", title, description, url: canonical, publishedTime: post.publishedAt.toISOString(), modifiedTime: post.updatedAt.toISOString(), images }, twitter: { card: "summary_large_image", title, description, images: images.map((image) => image.url) } };
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ postSlug: string }> }) {
-  const post = await findPublicPost((await params).postSlug);
+  let post;
+  try {
+    post = await findPublicPost((await params).postSlug);
+  } catch {
+    return <main><section className="section"><div className="shell cms-blog-empty" role="alert"><h1>Unable to load this article.</h1><p>Please try again in a moment.</p></div></section></main>;
+  }
   if (!post?.publishedAt) notFound();
   const canonicalUrl = `${siteUrl}/blog/${post.slug}`;
   const description = post.metaDescription || post.excerpt || undefined;

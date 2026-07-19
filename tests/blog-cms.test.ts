@@ -6,7 +6,8 @@ import MarkdownContent from "../components/blog/markdown-content";
 import { formatNepalDateTimeInput, parseNepalDateTimeInput } from "../lib/blog/dates";
 import { estimateReadingTime } from "../lib/blog/reading-time";
 import { createBlogSlug } from "../lib/blog/slug";
-import { blogPostInputSchema, isBlogPostPublic, parseBlogPostInput, resolveBlogPublishedAt } from "../lib/blog/validation";
+import { buildPublicBlogWhere, blogPostInputSchema, isBlogPostPublic, parseBlogPostInput, resolveBlogPublishedAt } from "../lib/blog/validation";
+import { buildBlogSitemapEntries } from "../lib/blog/sitemap";
 
 test("normalizes blog slugs", () => {
   assert.equal(createBlogSlug("Study in USA 2026"), "study-in-usa-2026");
@@ -49,6 +50,14 @@ test("enforces public visibility rules", () => {
   assert.equal(isBlogPostPublic({ status: "DRAFT", publishedAt: now }, now), false);
   assert.equal(isBlogPostPublic({ status: "PUBLISHED", publishedAt: new Date("2026-07-19T00:00:00Z") }, now), false);
   assert.equal(isBlogPostPublic({ status: "PUBLISHED", publishedAt: now }, now), true);
+  assert.deepEqual(buildPublicBlogWhere(now), { status: "PUBLISHED", publishedAt: { not: null, lte: now } });
+});
+
+test("builds blog sitemap entries from public records only", () => {
+  const updatedAt = new Date("2026-07-18T12:00:00.000Z");
+  const entries = buildBlogSitemapEntries([{ slug: "public-guide", updatedAt }], [{ slug: "study-guides", updatedAt }]);
+  assert.deepEqual(entries.map((entry) => entry.url), ["https://selfapplycenter.com/blog", "https://selfapplycenter.com/blog/public-guide", "https://selfapplycenter.com/blog/category/study-guides"]);
+  assert.equal("lastModified" in entries[1] ? entries[1].lastModified : null, updatedAt);
 });
 
 test("converts Nepal date-time input independently of server timezone", () => {
@@ -92,4 +101,7 @@ test("sanitizes Markdown and disables content images", () => {
   assert.match(html, /href="https:\/\/example\.com\/guide"/);
   assert.match(html, /target="_blank"/);
   assert.match(html, /rel="noopener noreferrer"/);
+  const headings = renderToStaticMarkup(createElement(MarkdownContent, { content: "# Article heading" }));
+  assert.doesNotMatch(headings, /<h1/);
+  assert.match(headings, /<h2>Article heading<\/h2>/);
 });

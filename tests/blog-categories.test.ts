@@ -27,4 +27,5 @@ test("validates and deduplicates category assignments", () => {
 
 test("builds category metadata with canonical and fallback", () => {
   assert.deepEqual(buildCategorySeo({ name: "Study Guides", slug: "study-guides", description: null }), { title: "Study Guides", description: "Read Study Guides articles from Self Apply Center.", canonical: "/blog/category/study-guides" });
+  assert.equal(buildCategorySeo({ name: "Study Guides", slug: "study-guides", description: null }, 2).canonical, "/blog/category/study-guides?page=2");
 });
