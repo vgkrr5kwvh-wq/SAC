@@ -3,7 +3,8 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { initialBlogFormState, saveBlogPostAction } from "@/app/admin/blog/actions";
+import { saveBlogPostAction } from "@/app/admin/blog/actions";
+import { createInitialBlogFormState } from "@/lib/blog/form-state";
 
 export type BlogFormValues = {
   title: string;
@@ -21,10 +22,10 @@ export type BlogMediaOption = { id: string; originalName: string; url: string; a
 
 export default function BlogPostForm({ postId, initialValues, categories, selectedCategoryIds = [], media = [] }: { postId: string | null; initialValues: BlogFormValues; categories: Array<{ id: string; name: string; isActive: boolean }>; selectedCategoryIds?: string[]; media?: BlogMediaOption[] }) {
   const action = saveBlogPostAction.bind(null, postId);
-  const [state, formAction] = useActionState(action, initialBlogFormState);
-  const value = (name: keyof BlogFormValues) => state.values[name] ?? String(initialValues[name]);
+  const [state, formAction] = useActionState(action, createInitialBlogFormState(initialValues, selectedCategoryIds));
+  const value = (name: keyof BlogFormValues) => state.values[name];
   const error = (name: keyof BlogFormValues) => state.errors[name]?.[0];
-  const selectedCategories = state.values.categoryIds !== undefined ? state.values.categoryIds.split(",").filter(Boolean) : selectedCategoryIds;
+  const selectedCategories = state.values.categoryIds.split(",").filter(Boolean);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
   const closePickerRef = useRef<HTMLButtonElement>(null);
@@ -97,7 +98,7 @@ export default function BlogPostForm({ postId, initialValues, categories, select
         <Field label="Published date and time (Nepal Time)" name="publishedAt" error={error("publishedAt")} help="Optional. Publishing without a date uses the current time.">
           <input id="blog-publishedAt" name="publishedAt" type="datetime-local" defaultValue={value("publishedAt")} {...fieldA11y("publishedAt", true)} />
         </Field>
-        <label className="admin-blog-checkbox"><input name="featured" type="checkbox" defaultChecked={(state.values.featured ?? String(initialValues.featured)) === "true"} /> <span>Feature this post</span></label>
+        <label className="admin-blog-checkbox"><input name="featured" type="checkbox" defaultChecked={state.values.featured === "true"} /> <span>Feature this post</span></label>
         <fieldset className="admin-blog-field is-wide" aria-describedby={state.errors.categoryIds ? "blog-categoryIds-error" : undefined}><legend>Categories</legend><div className="admin-category-options">{categories.length ? categories.map((category) => <label key={category.id}><input type="checkbox" name="categoryIds" value={category.id} defaultChecked={selectedCategories.includes(category.id)}/> {category.name}{category.isActive ? "" : " (Inactive)"}</label>) : <p>No active categories available.</p>}</div>{state.errors.categoryIds ? <p id="blog-categoryIds-error" className="admin-blog-field-error">{state.errors.categoryIds[0]}</p> : null}</fieldset>
         <Field label="SEO title" name="seoTitle" error={error("seoTitle")}>
           <input id="blog-seoTitle" name="seoTitle" defaultValue={value("seoTitle")} maxLength={70} {...fieldA11y("seoTitle")} />

@@ -3,11 +3,13 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import MarkdownContent from "../components/blog/markdown-content";
+import BlogPostForm from "../components/admin/blog-post-form";
 import { formatNepalDateTimeInput, parseNepalDateTimeInput } from "../lib/blog/dates";
 import { estimateReadingTime } from "../lib/blog/reading-time";
 import { createBlogSlug } from "../lib/blog/slug";
 import { buildPublicBlogWhere, blogPostInputSchema, isBlogPostPublic, parseBlogPostInput, resolveBlogPublishedAt } from "../lib/blog/validation";
 import { buildBlogSitemapEntries } from "../lib/blog/sitemap";
+import { createInitialBlogFormState } from "../lib/blog/form-state";
 
 test("normalizes blog slugs", () => {
   assert.equal(createBlogSlug("Study in USA 2026"), "study-in-usa-2026");
@@ -25,6 +27,29 @@ test("estimates Markdown reading time", () => {
 });
 
 const valid = { title: "Study in Canada", slug: "study-in-canada", excerpt: "Useful advice", content: "# Start\n\nContent", coverImageUrl: "https://example.com/cover.jpg", status: "DRAFT", featured: false, seoTitle: "Study in Canada", metaDescription: "A practical guide.", publishedAt: "" };
+
+test("initializes every blog form value before the initial render", () => {
+  const state = createInitialBlogFormState(valid as typeof valid & { status: "DRAFT" }, []);
+  assert.deepEqual(state.errors, {});
+  assert.equal(state.values.categoryIds, "");
+  assert.deepEqual(state.values.categoryIds.split(",").filter(Boolean), []);
+  for (const field of ["title", "slug", "excerpt", "content", "coverImageUrl", "status", "featured", "seoTitle", "metaDescription", "publishedAt"]) {
+    assert.equal(typeof state.values[field], "string");
+  }
+});
+
+test("renders the create form without prior validation state", () => {
+  const html = renderToStaticMarkup(createElement(BlogPostForm, {
+    postId: null,
+    initialValues: { ...valid, status: "DRAFT" as const },
+    categories: [{ id: "c12345678901234567890", name: "Study Guides", isActive: true }],
+    selectedCategoryIds: [],
+    media: [],
+  }));
+  assert.match(html, /<form[^>]*class="admin-blog-form"/);
+  assert.match(html, /name="categoryIds"/);
+  assert.doesNotMatch(html, /checked=""/);
+});
 
 test("validates draft and published blog posts", () => {
   assert.equal(blogPostInputSchema.safeParse(valid).success, true);

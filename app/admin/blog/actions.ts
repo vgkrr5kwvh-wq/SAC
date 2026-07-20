@@ -7,22 +7,9 @@ import { ZodError } from "zod";
 import { auth } from "@/auth";
 import { parseCategoryIds } from "@/lib/blog/category-validation";
 import { isBlogPostId } from "@/lib/blog/id";
+import type { BlogFormState } from "@/lib/blog/form-state";
 import { parseBlogPostInput, resolveBlogPublishedAt } from "@/lib/blog/validation";
 import { prisma } from "@/lib/prisma";
-
-export type BlogFormState = {
-  status: "idle" | "error";
-  message: string;
-  errors: Record<string, string[]>;
-  values: Record<string, string>;
-};
-
-export const initialBlogFormState: BlogFormState = {
-  status: "idle",
-  message: "",
-  errors: {},
-  values: {},
-};
 
 class InvalidCategorySelectionError extends Error {}
 class DuplicateBlogSlugError extends Error {}
