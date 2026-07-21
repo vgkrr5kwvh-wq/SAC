@@ -43,12 +43,17 @@ model PartnerEnquiry {
 
 model AdminUser {
   id           String       @id @default(cuid()) @db.VarChar(30)
+  name         String?      @db.VarChar(120)
   email        String       @unique @db.VarChar(191)
   passwordHash String       @db.VarChar(255)
   isActive     Boolean      @default(true)
+  role         AdminRole    @default(SUPER_ADMIN)
+  sessionVersion Int        @default(0)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   mediaAssets  MediaAsset[]
+  createdPosts BlogPost[]   @relation("BlogPostCreatedBy")
+  updatedPosts BlogPost[]   @relation("BlogPostUpdatedBy")
 }
 
 model BlogPost {
@@ -65,11 +70,17 @@ model BlogPost {
   publishedAt     DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  createdById     String?        @db.VarChar(30)
+  updatedById     String?        @db.VarChar(30)
   categories      Category[]
+  createdBy       AdminUser?     @relation("BlogPostCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy       AdminUser?     @relation("BlogPostUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([status, publishedAt])
   @@index([createdAt])
   @@index([featured])
+  @@index([createdById])
+  @@index([updatedById])
 }
 
 model Category {
@@ -122,4 +133,10 @@ enum NotificationStatus {
 enum BlogPostStatus {
   DRAFT
   PUBLISHED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  EDITOR
+  STAFF
 }

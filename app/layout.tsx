@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
-import SiteFooter from "../components/site-footer";
-import SiteHeader from "../components/site-header";
-import SiteMotion from "../components/site-motion";
+import SiteChrome from "../components/site-chrome";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -46,10 +44,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${manrope.variable} ${plusJakartaSans.variable}`}>
       <body>
-        <SiteHeader />
-        <SiteMotion />
-        {children}
-        <SiteFooter />
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

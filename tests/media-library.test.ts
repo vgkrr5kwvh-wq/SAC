@@ -6,6 +6,10 @@ import { canDeleteMediaRecord, externalStorageProvider, getMediaStorageProvider,
 import { hasAuthenticatedMediaAdmin, isMediaAssetId, isPublishedMediaReference, isSafeMediaImageUrl, mediaCreateSchema, mediaDuplicateKey, mediaMetadataSchema, validateImageFile, validateMediaUpload } from "../lib/media/validation";
 import { readImageDimensions } from "../lib/media/image-metadata";
 import { CloudinaryConfigurationError, parseCloudinaryConfig } from "../lib/media/cloudinary-config-values";
+import { createInitialMediaFormState, mediaFormValues } from "../lib/media/form-state";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { CreateMediaForm, EditMediaForm } from "../app/admin/media/media-form";
 
 const validImage = {
   url: "https://cdn.example.com/media/campus.webp",
@@ -19,6 +23,37 @@ const validImage = {
   caption: "",
   folder: " blog/covers ",
 };
+
+test("initializes create and edit Media Library forms", () => {
+  const createState = createInitialMediaFormState();
+  assert.deepEqual(createState.values, { originalName: "", altText: "", caption: "", folder: "" });
+
+  const editValues = { originalName: "campus.png", altText: "Campus", caption: "Main building", folder: "blog/covers" };
+  const editState = createInitialMediaFormState(editValues);
+  assert.deepEqual(editState.values, editValues);
+
+  const createHtml = renderToStaticMarkup(createElement(CreateMediaForm));
+  assert.match(createHtml, /name="file"/);
+  assert.match(createHtml, /name="altText"/);
+
+  const editHtml = renderToStaticMarkup(createElement(EditMediaForm, { id: "c12345678901234567890", values: editValues }));
+  assert.match(editHtml, /value="campus\.png"/);
+  assert.match(editHtml, />Main building<\/textarea>/);
+});
+
+test("captures submitted media metadata for failed-state persistence", () => {
+  const formData = new FormData();
+  formData.set("originalName", " revised.png ");
+  formData.set("altText", "Updated campus alt");
+  formData.set("caption", "Updated caption");
+  formData.set("folder", "blog/updated");
+  assert.deepEqual(mediaFormValues(formData), {
+    originalName: " revised.png ",
+    altText: "Updated campus alt",
+    caption: "Updated caption",
+    folder: "blog/updated",
+  });
+});
 
 test("validates and normalizes an external HTTPS image", () => {
   const value = mediaCreateSchema.parse(validImage);

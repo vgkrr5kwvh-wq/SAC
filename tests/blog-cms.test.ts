@@ -64,6 +64,7 @@ test("rejects invalid blog fields", () => {
     { ...valid, slug: "!!!" },
     { ...valid, status: "ARCHIVED" },
     { ...valid, coverImageUrl: "not-a-url" },
+    { ...valid, coverImageUrl: "http://example.com/cover.jpg" },
     { ...valid, coverImageUrl: "javascript:alert(1)" },
     { ...valid, seoTitle: "x".repeat(71) },
     { ...valid, metaDescription: "x".repeat(161) },

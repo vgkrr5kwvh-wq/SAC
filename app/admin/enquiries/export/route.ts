@@ -11,6 +11,7 @@ import {
   sanitizeSearchParameter,
 } from "@/lib/admin-enquiry-params";
 import { prisma } from "@/lib/prisma";
+import { hasAdminPermission } from "@/lib/admin-authorization";
 
 const exportLimit = 10_000;
 
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   if (!session?.user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
+  if (!hasAdminPermission(session.user.role, "manage_enquiries")) return new Response("Forbidden", { status: 403 });
 
   const query = sanitizeSearchParameter(request.nextUrl.searchParams.get("q"));
   const where = buildEnquirySearchWhere(query);

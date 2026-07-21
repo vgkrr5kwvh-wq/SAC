@@ -10,6 +10,7 @@ import { isBlogPostId } from "@/lib/blog/id";
 import type { BlogFormState } from "@/lib/blog/form-state";
 import { parseBlogPostInput, resolveBlogPublishedAt } from "@/lib/blog/validation";
 import { prisma } from "@/lib/prisma";
+import { hasAdminPermission } from "@/lib/admin-authorization";
 
 class InvalidCategorySelectionError extends Error {}
 class DuplicateBlogSlugError extends Error {}
@@ -35,7 +36,7 @@ export async function saveBlogPostAction(
   });
 
   const session = await auth();
-  if (!session?.user) return failure("Unable to save blog post.");
+  if (!session?.user || !hasAdminPermission(session.user.role, "manage_blog")) return failure("Unable to save blog post.");
   if (postId && !isBlogPostId(postId)) return failure("Unable to save blog post.");
 
   let input;
@@ -46,6 +47,7 @@ export async function saveBlogPostAction(
       featured: formData.get("featured") === "on",
     });
     categoryIds = parseCategoryIds(formData.getAll("categoryIds"));
+    if (input.status === "PUBLISHED" && !hasAdminPermission(session.user.role, "publish_blog")) return failure("You do not have permission to publish blog posts.");
   } catch (error) {
     if (error instanceof ZodError) {
       const flattened = error.flatten();
@@ -87,8 +89,8 @@ export async function saveBlogPostAction(
         }),
       };
       const post = postId
-        ? await transaction.blogPost.update({ where: { id: postId }, data: { ...data, categories: { set: categoryIds.map((id) => ({ id })) } }, select: { id: true, slug: true } })
-        : await transaction.blogPost.create({ data: { ...data, categories: { connect: categoryIds.map((id) => ({ id })) } }, select: { id: true, slug: true } });
+        ? await transaction.blogPost.update({ where: { id: postId }, data: { ...data, updatedById: session.user.id, categories: { set: categoryIds.map((id) => ({ id })) } }, select: { id: true, slug: true } })
+        : await transaction.blogPost.create({ data: { ...data, createdById: session.user.id, updatedById: session.user.id, categories: { connect: categoryIds.map((id) => ({ id })) } }, select: { id: true, slug: true } });
       return { post, existingSlug: existing?.slug, oldCategorySlugs: existing?.categories.map((category) => category.slug) ?? [], newCategorySlugs: validCategories.map((category) => category.slug) };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
@@ -107,5 +109,21 @@ export async function saveBlogPostAction(
     }
     if (error && typeof error === "object" && "digest" in error) throw error;
     return failure("Unable to save blog post.");
+  }
+}
+
+export async function deleteBlogPostAction(postId: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user) redirect("/login?callbackUrl=/admin/blog");
+  if (!hasAdminPermission(session.user.role, "manage_blog")) redirect("/admin/forbidden");
+  if (!isBlogPostId(postId)) redirect("/admin/blog?delete=failed");
+  try {
+    const post = await prisma.blogPost.delete({ where: { id: postId }, select: { slug: true, categories: { select: { slug: true } } } });
+    revalidatePath("/admin/blog"); revalidatePath("/blog"); revalidatePath(`/blog/${post.slug}`); revalidatePath("/sitemap.xml");
+    for (const category of post.categories) revalidatePath(`/blog/category/${category.slug}`);
+    redirect("/admin/blog?deleted=1");
+  } catch (error) {
+    if (error && typeof error === "object" && "digest" in error) throw error;
+    redirect("/admin/blog?delete=failed");
   }
 }

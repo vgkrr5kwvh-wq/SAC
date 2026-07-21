@@ -10,8 +10,8 @@ const optionalText = (maximum: number) => z.preprocess(
 const coverUrlSchema = z.preprocess(
   (value) => typeof value === "string" && value.trim() ? value.trim() : undefined,
   z.string().url().max(2048).refine(
-    (value) => /^https?:\/\//i.test(value) && URL.canParse(value),
-    "Cover image must use http or https.",
+    (value) => URL.canParse(value) && new URL(value).protocol === "https:",
+    "Cover image must use HTTPS.",
   ).optional(),
 );
 

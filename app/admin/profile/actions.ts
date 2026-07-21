@@ -52,7 +52,7 @@ export async function changePasswordAction(
 
     await prisma.adminUser.update({
       where: { id: session.user.id },
-      data: { passwordHash },
+      data: { passwordHash, sessionVersion: { increment: 1 } },
       select: { id: true },
     });
 

@@ -1,404 +1,120 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import {
-  buildBreakdownChartData,
-  buildBreakdownRows,
-  buildHalfOpenDateFilter,
-  buildMonthlyChartData,
-  formatAnalyticsDate,
-  getNepalAnalyticsBoundaries,
-  getNepalMonthlyRange,
-  mergeRecentActivity,
-  type RecentActivity,
-} from "@/lib/admin-dashboard-analytics";
+  IoAlbumsOutline,
+  IoBriefcaseOutline,
+  IoCloudUploadOutline,
+  IoImagesOutline,
+  IoOpenOutline,
+  IoPeopleOutline,
+  IoPricetagsOutline,
+  IoSparklesOutline,
+} from "react-icons/io5";
+import { buildHalfOpenDateFilter, formatAnalyticsDate, getNepalAnalyticsBoundaries } from "@/lib/admin-dashboard-analytics";
 import { prisma } from "@/lib/prisma";
-import DashboardCharts from "./dashboard-charts";
+import { hasAdminPermission } from "@/lib/admin-authorization";
+import { requireAdmin } from "@/lib/admin-session";
 
 export const metadata: Metadata = {
-  title: "Admin dashboard",
+  title: "CMS dashboard",
   robots: { index: false, follow: false },
 };
 
 async function getDashboardData() {
   const boundaries = getNepalAnalyticsBoundaries();
-  const today = buildHalfOpenDateFilter(
-    boundaries.startOfToday,
-    boundaries.startOfTomorrow,
-  );
-  const thisWeek = buildHalfOpenDateFilter(
-    boundaries.startOfWeek,
-    boundaries.startOfNextWeek,
-  );
-  const thisMonth = buildHalfOpenDateFilter(
-    boundaries.startOfMonth,
-    boundaries.startOfNextMonth,
-  );
-  const monthlyRange = getNepalMonthlyRange();
+  const today = buildHalfOpenDateFilter(boundaries.startOfToday, boundaries.startOfTomorrow);
+  const month = buildHalfOpenDateFilter(boundaries.startOfMonth, boundaries.startOfNextMonth);
 
-  return Promise.all([
+  return prisma.$transaction([
     prisma.enquiry.count(),
     prisma.enquiry.count({ where: { createdAt: today } }),
-    prisma.enquiry.count({ where: { createdAt: thisWeek } }),
-    prisma.enquiry.count({ where: { createdAt: thisMonth } }),
+    prisma.enquiry.count({ where: { createdAt: month } }),
     prisma.partnerEnquiry.count(),
     prisma.partnerEnquiry.count({ where: { createdAt: today } }),
-    prisma.partnerEnquiry.count({ where: { createdAt: thisWeek } }),
-    prisma.partnerEnquiry.count({ where: { createdAt: thisMonth } }),
-    prisma.enquiry.groupBy({
-      by: ["notificationStatus"],
-      _count: { _all: true },
-      orderBy: { notificationStatus: "asc" },
-    }),
-    prisma.partnerEnquiry.groupBy({
-      by: ["notificationStatus"],
-      _count: { _all: true },
-      orderBy: { notificationStatus: "asc" },
-    }),
-    prisma.enquiry.groupBy({
-      by: ["interest"],
-      _count: { _all: true },
-      orderBy: [{ _count: { id: "desc" } }, { interest: "asc" }],
-      take: 10,
-    }),
-    prisma.partnerEnquiry.groupBy({
-      by: ["locations"],
-      _count: { _all: true },
-      orderBy: [{ _count: { id: "desc" } }, { locations: "asc" }],
-      take: 10,
-    }),
-    prisma.enquiry.findMany({
-      take: 10,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        interest: true,
-        createdAt: true,
-      },
-    }),
-    prisma.partnerEnquiry.findMany({
-      take: 10,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      select: {
-        id: true,
-        contactName: true,
-        organisation: true,
-        workEmail: true,
-        createdAt: true,
-      },
-    }),
-    prisma.$queryRaw<Array<{ monthKey: string; count: bigint }>>`
-      SELECT
-        DATE_FORMAT(DATE_ADD(createdAt, INTERVAL 345 MINUTE), '%Y-%m') AS monthKey,
-        COUNT(*) AS count
-      FROM Enquiry
-      WHERE createdAt >= ${monthlyRange.start}
-        AND createdAt < ${monthlyRange.end}
-      GROUP BY monthKey
-      ORDER BY monthKey ASC
-    `,
-    Promise.resolve(monthlyRange.monthKeys),
+    prisma.partnerEnquiry.count({ where: { createdAt: month } }),
+    prisma.blogPost.count({ where: { status: "PUBLISHED" } }),
+    prisma.blogPost.count({ where: { status: "DRAFT" } }),
+    prisma.blogPost.count({ where: { status: "PUBLISHED", publishedAt: month } }),
+    prisma.category.count(),
+    prisma.mediaAsset.count(),
+    prisma.mediaAsset.count({ where: { createdAt: month } }),
+    prisma.enquiry.findMany({ take: 5, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true, name: true, interest: true, notificationStatus: true, createdAt: true } }),
+    prisma.partnerEnquiry.findMany({ take: 5, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true, contactName: true, organisation: true, notificationStatus: true, createdAt: true } }),
+    prisma.blogPost.findMany({ take: 5, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], select: { id: true, title: true, status: true, updatedAt: true } }),
+    prisma.mediaAsset.findMany({ take: 5, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true, originalName: true, provider: true, createdAt: true } }),
   ]);
 }
 
 export default async function AdminPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/login?callbackUrl=/admin");
-
-  let dashboardData;
+  const session = await requireAdmin("view_dashboard");
+  let data;
   try {
-    dashboardData = await getDashboardData();
+    data = await getDashboardData();
   } catch {
-    return (
-      <section className="admin-error" role="alert">
-        <span className="login-eyebrow">Dashboard unavailable</span>
-        <h1>We couldn&apos;t load the dashboard</h1>
-        <p>Please refresh the page in a moment.</p>
-      </section>
-    );
+    return <section className="admin-error" role="alert"><h1>Dashboard unavailable</h1><p>Please refresh the page in a moment.</p></section>;
   }
 
-  const [
-    totalStudents,
-    studentsToday,
-    studentsThisWeek,
-    studentsThisMonth,
-    totalPartners,
-    partnersToday,
-    partnersThisWeek,
-    partnersThisMonth,
-    studentNotificationGroups,
-    partnerNotificationGroups,
-    studentInterestGroups,
-    partnerLocationGroups,
-    recentStudents,
-    recentPartners,
-    monthlyStudentGroups,
-    monthlyStudentKeys,
-  ] = dashboardData;
-
-  const studentSummary = [
-    { label: "Total", value: totalStudents },
-    { label: "Today", value: studentsToday },
-    { label: "This week", value: studentsThisWeek },
-    { label: "This month", value: studentsThisMonth },
+  const [students, studentsToday, studentsMonth, partners, partnersToday, partnersMonth, published, drafts, publishedMonth, categories, media, uploadsMonth, recentStudents, recentPartners, recentPosts, recentMedia] = data;
+  const statistics = [
+    { label: "Student Enquiries", value: students, secondary: `${studentsToday} today`, href: "/admin/enquiries", icon: IoPeopleOutline, tone: "blue" },
+    { label: "Partner Enquiries", value: partners, secondary: `${partnersToday} today`, href: "/admin/partner-enquiries", icon: IoBriefcaseOutline, tone: "violet" },
+    { label: "Published Blogs", value: published, secondary: `${publishedMonth} this month`, href: "/admin/blog", icon: IoAlbumsOutline, tone: "green" },
+    { label: "Draft Blogs", value: drafts, secondary: "Awaiting publication", href: "/admin/blog", icon: IoSparklesOutline, tone: "amber" },
+    { label: "Categories", value: categories, secondary: "Content groups", href: "/admin/blog/categories", icon: IoPricetagsOutline, tone: "rose" },
+    { label: "Media Files", value: media, secondary: `${uploadsMonth} this month`, href: "/admin/media", icon: IoImagesOutline, tone: "cyan" },
   ];
-  const partnerSummary = [
-    { label: "Total", value: totalPartners },
-    { label: "Today", value: partnersToday },
-    { label: "This week", value: partnersThisWeek },
-    { label: "This month", value: partnersThisMonth },
-  ];
-  const studentBreakdown = buildBreakdownRows(
-    studentInterestGroups.map((group) => ({
-      label: group.interest,
-      count: group._count._all,
-    })),
-    totalStudents,
-  );
-  const partnerBreakdown = buildBreakdownRows(
-    partnerLocationGroups.map((group) => ({
-      label: group.locations,
-      count: group._count._all,
-    })),
-    totalPartners,
-  );
-  const studentActivity: RecentActivity[] = recentStudents.map((enquiry) => ({
-    id: enquiry.id,
-    type: "Student",
-    primaryName: enquiry.name,
-    secondaryDescriptor: enquiry.email || enquiry.interest || "Not specified",
-    createdAt: enquiry.createdAt,
-    href: `/admin/enquiries/${encodeURIComponent(enquiry.id)}`,
-  }));
-  const partnerActivity: RecentActivity[] = recentPartners.map((enquiry) => ({
-    id: enquiry.id,
-    type: "Partner",
-    primaryName: enquiry.contactName,
-    secondaryDescriptor: enquiry.organisation || enquiry.workEmail,
-    createdAt: enquiry.createdAt,
-    href: `/admin/partner-enquiries/${encodeURIComponent(enquiry.id)}`,
-  }));
-  const recentActivity = mergeRecentActivity(
-    studentActivity,
-    partnerActivity,
-  );
-  const studentDestinationChart = buildBreakdownChartData(studentBreakdown);
-  const partnerLocationChart = buildBreakdownChartData(partnerBreakdown);
-  const monthlyStudentChart = buildMonthlyChartData(
-    monthlyStudentGroups,
-    monthlyStudentKeys,
-  );
+  const quickActions = [
+    { href: "/admin/blog/new", label: "New Blog", icon: IoAlbumsOutline, permission: "manage_blog" as const },
+    { href: "/admin/media/new", label: "Upload Media", icon: IoCloudUploadOutline, permission: "manage_media" as const },
+    { href: "/admin/blog/categories", label: "Manage Categories", icon: IoPricetagsOutline, permission: "manage_categories" as const },
+  ].filter((action) => hasAdminPermission(session.user.role, action.permission));
+  const canManageEnquiries = hasAdminPermission(session.user.role, "manage_enquiries");
+  const canManageBlog = hasAdminPermission(session.user.role, "manage_blog");
+  const canManageMedia = hasAdminPermission(session.user.role, "manage_media");
 
-  return (
-    <div className="admin-dashboard admin-analytics-dashboard">
-      <section className="admin-dashboard-heading" aria-labelledby="admin-heading">
-        <div>
-          <span className="login-eyebrow">Administrator overview</span>
-          <h1 id="admin-heading">Dashboard</h1>
-          <p>Monitor enquiry volume, notification delivery, and recent activity.</p>
-        </div>
-        <p className="admin-signed-in">
-          Signed in as <strong>{session.user.email}</strong>
-        </p>
-      </section>
-
-      <div className="admin-analytics-summary-grid">
-        <SummarySection title="Student Enquiries" statistics={studentSummary} />
-        <SummarySection title="Partner Enquiries" statistics={partnerSummary} />
-        <section className="admin-analytics-card" aria-labelledby="notification-summary-heading">
-          <h2 id="notification-summary-heading">Notification Status</h2>
-          <div className="admin-notification-summary">
-            <NotificationSummary title="Student" groups={studentNotificationGroups} />
-            <NotificationSummary title="Partner" groups={partnerNotificationGroups} />
-          </div>
-        </section>
+  return <div className="admin-dashboard cms-dashboard">
+    <header className="cms-dashboard-heading">
+      <div><span>Overview</span><h1>Dashboard</h1><p>Content, enquiries and media at a glance.</p></div>
+      <div className="cms-quick-actions" aria-label="Quick actions">
+        {quickActions.map(({ href, label, icon: Icon }) => <Link href={href} key={href}><Icon aria-hidden="true"/>{label}</Link>)}
+        <Link href="/" target="_blank"><IoOpenOutline aria-hidden="true"/>View Website</Link>
       </div>
+    </header>
 
-      <DashboardCharts
-        studentDestinations={studentDestinationChart}
-        partnerLocations={partnerLocationChart}
-        monthlyStudents={monthlyStudentChart}
-      />
-
-      <div className="admin-breakdown-grid">
-        <BreakdownTable
-          heading="Student destination / interest"
-          eyebrow="Student enquiries"
-          labelHeading="Destination / Interest"
-          rows={studentBreakdown}
-          emptyMessage="No student destination data available."
-        />
-        <BreakdownTable
-          heading="Submitted location values"
-          eyebrow="Partner enquiries"
-          labelHeading="Location value"
-          rows={partnerBreakdown}
-          emptyMessage="No partner location data available."
-        />
-      </div>
-
-      <section className="admin-table-card" aria-labelledby="recent-activity-heading">
-        <div className="admin-table-heading">
-          <div>
-            <span>Across all enquiries</span>
-            <h2 id="recent-activity-heading">Recent Activity</h2>
-          </div>
-          <small>Latest 10 submissions</small>
-        </div>
-        <div className="admin-table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Type</th>
-                <th scope="col">Primary Name</th>
-                <th scope="col">Details</th>
-                <th scope="col">Submitted Date</th>
-                <th scope="col"><span className="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentActivity.length ? (
-                recentActivity.map((activity) => (
-                  <tr key={`${activity.type}-${activity.id}`}>
-                    <td data-label="Type">{activity.type}</td>
-                    <td data-label="Primary Name">{activity.primaryName}</td>
-                    <td data-label="Details">{activity.secondaryDescriptor}</td>
-                    <td data-label="Submitted Date">
-                      {formatAnalyticsDate(activity.createdAt)}
-                    </td>
-                    <td className="admin-table-action">
-                      <Link
-                        href={activity.href}
-                        aria-label={`View ${activity.type.toLowerCase()} enquiry from ${activity.primaryName}`}
-                      >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="admin-empty-row" colSpan={5}>
-                    No recent activity.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-type SummarySectionProps = {
-  title: string;
-  statistics: Array<{ label: string; value: number }>;
-};
-
-function SummarySection({ title, statistics }: SummarySectionProps) {
-  const headingId = `${title.toLowerCase().replace(/\s+/g, "-")}-summary`;
-  return (
-    <section className="admin-analytics-card" aria-labelledby={headingId}>
-      <h2 id={headingId}>{title}</h2>
-      <dl className="admin-analytics-stat-grid">
-        {statistics.map((statistic) => (
-          <div key={statistic.label}>
-            <dt>{statistic.label}</dt>
-            <dd>{statistic.value.toLocaleString("en-US")}</dd>
-          </div>
-        ))}
-      </dl>
+    <section className="cms-stat-grid" aria-label="Content statistics">
+      {statistics.map(({ icon: Icon, ...stat }) => <Link className={`cms-stat-card is-${stat.tone}`} href={stat.href} key={stat.label}>
+        <span className="cms-stat-icon"><Icon aria-hidden="true"/></span>
+        <span className="cms-stat-label">{stat.label}</span>
+        <strong>{stat.value.toLocaleString("en-US")}</strong>
+        <small>{stat.secondary}</small>
+      </Link>)}
     </section>
-  );
-}
 
-type NotificationGroup = {
-  notificationStatus: string;
-  _count: { _all: number };
-};
+    <section className="cms-analytics-grid" aria-labelledby="analytics-title">
+      <div className="cms-section-heading"><div><span>Current month</span><h2 id="analytics-title">Analytics snapshot</h2></div></div>
+      <AnalyticsCard label="Student enquiries" value={studentsMonth} total={students} tone="blue" />
+      <AnalyticsCard label="Partner enquiries" value={partnersMonth} total={partners} tone="violet" />
+      <AnalyticsCard label="Published blogs" value={publishedMonth} total={published} tone="green" />
+      <AnalyticsCard label="Recent uploads" value={uploadsMonth} total={media} tone="cyan" />
+    </section>
 
-function NotificationSummary({
-  title,
-  groups,
-}: {
-  title: string;
-  groups: NotificationGroup[];
-}) {
-  return (
-    <div>
-      <h3>{title}</h3>
-      {groups.length ? (
-        <dl>
-          {groups.map((group) => (
-            <div key={group.notificationStatus}>
-              <dt>{group.notificationStatus}</dt>
-              <dd>{group._count._all.toLocaleString("en-US")}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : (
-        <p>No notifications yet.</p>
-      )}
-    </div>
-  );
-}
-
-type BreakdownTableProps = {
-  heading: string;
-  eyebrow: string;
-  labelHeading: string;
-  rows: Array<{ label: string; count: number; percentage: string }>;
-  emptyMessage: string;
-};
-
-function BreakdownTable({
-  heading,
-  eyebrow,
-  labelHeading,
-  rows,
-  emptyMessage,
-}: BreakdownTableProps) {
-  const headingId = `${heading.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-heading`;
-  return (
-    <section className="admin-table-card" aria-labelledby={headingId}>
-      <div className="admin-table-heading">
-        <div>
-          <span>{eyebrow}</span>
-          <h2 id={headingId}>{heading}</h2>
-        </div>
-        <small>Top 10 exact values</small>
-      </div>
-      <div className="admin-table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">{labelHeading}</th>
-              <th scope="col">Count</th>
-              <th scope="col">Percentage</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length ? (
-              rows.map((row) => (
-                <tr key={row.label}>
-                  <td data-label={labelHeading}>{row.label}</td>
-                  <td data-label="Count">{row.count.toLocaleString("en-US")}</td>
-                  <td data-label="Percentage">{row.percentage}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td className="admin-empty-row" colSpan={3}>{emptyMessage}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+    <section className="cms-activity-section" aria-labelledby="activity-title">
+      <div className="cms-section-heading"><div><span>Latest records</span><h2 id="activity-title">Recent activity</h2></div><small>Five newest in each collection</small></div>
+      <div className="cms-activity-grid">
+        {canManageEnquiries ? <><ActivityCard title="Latest Student Enquiries" href="/admin/enquiries" empty="No enquiries yet" items={recentStudents.map((item) => ({ id: item.id, title: item.name, detail: item.interest || "General enquiry", status: item.notificationStatus, date: item.createdAt, href: `/admin/enquiries/${item.id}` }))}/><ActivityCard title="Latest Partner Enquiries" href="/admin/partner-enquiries" empty="No partner enquiries yet" items={recentPartners.map((item) => ({ id: item.id, title: item.contactName, detail: item.organisation, status: item.notificationStatus, date: item.createdAt, href: `/admin/partner-enquiries/${item.id}` }))}/></> : null}
+        {canManageBlog ? <ActivityCard title="Latest Blog Posts" href="/admin/blog" empty="No blog posts" items={recentPosts.map((item) => ({ id: item.id, title: item.title, detail: "Blog post", status: item.status, date: item.updatedAt, href: `/admin/blog/${item.id}/edit` }))}/> : null}
+        {canManageMedia ? <ActivityCard title="Latest Uploaded Images" href="/admin/media" empty="No media uploaded" items={recentMedia.map((item) => ({ id: item.id, title: item.originalName, detail: "Image asset", status: item.provider, date: item.createdAt, href: `/admin/media/${item.id}` }))}/> : null}
       </div>
     </section>
-  );
+  </div>;
+}
+
+function AnalyticsCard({ label, value, total, tone }: { label: string; value: number; total: number; tone: string }) {
+  const percentage = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
+  return <article className={`cms-analytics-card is-${tone}`}><div><span>{label}</span><strong>{value.toLocaleString("en-US")}</strong></div><p>{percentage}% of all-time total</p><div className="cms-progress" aria-label={`${label}: ${percentage}% of all-time total`}><span style={{ width: `${percentage}%` }}/></div></article>;
+}
+
+type ActivityItem = { id: string; title: string; detail: string; status: string; date: Date; href: string };
+function ActivityCard({ title, href, empty, items }: { title: string; href: string; empty: string; items: ActivityItem[] }) {
+  return <article className="cms-activity-card"><header><h3>{title}</h3><Link href={href}>View all</Link></header>{items.length ? <ul>{items.map((item) => <li key={item.id}><Link href={item.href}><span className="cms-activity-copy"><strong>{item.title}</strong><small>{item.detail}</small></span><span className="cms-activity-meta"><em className={`cms-status is-${item.status.toLowerCase()}`}>{item.status}</em><time dateTime={item.date.toISOString()}>{formatAnalyticsDate(item.date)}</time></span></Link></li>)}</ul> : <div className="cms-empty-state"><span><IoSparklesOutline aria-hidden="true"/></span><strong>{empty}</strong><p>New records will appear here.</p></div>}</article>;
 }

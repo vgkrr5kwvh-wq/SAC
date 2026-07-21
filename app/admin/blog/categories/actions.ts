@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { canDeleteCategory, categoryInputSchema, isCategoryId } from "@/lib/blog/category-validation";
 import { prisma } from "@/lib/prisma";
+import { hasAdminPermission } from "@/lib/admin-authorization";
 
 export type CategoryFormState = { message: string; errors: Record<string, string[]>; values: Record<string, string> };
 class DuplicateCategorySlugError extends Error {}
@@ -17,7 +18,8 @@ export async function saveCategoryAction(id: string | null, _state: CategoryForm
     isActive: formData.get("isActive") === "on" ? "true" : "false",
   };
   const failure = (message: string, errors: Record<string, string[]> = {}): CategoryFormState => ({ message, errors, values });
-  if (!(await auth())?.user) return failure("Unable to save category.");
+  const session = await auth();
+  if (!session?.user || !hasAdminPermission(session.user.role, "manage_categories")) return failure("Unable to save category.");
   if (id && !isCategoryId(id)) return failure("Unable to save category.");
   const parsed = categoryInputSchema.safeParse({ name: formData.get("name"), slug: formData.get("slug"), description: formData.get("description"), isActive: formData.get("isActive") === "on", sortOrder: formData.get("sortOrder") });
   if (!parsed.success) return failure("Please correct the highlighted fields.", parsed.error.flatten().fieldErrors);
@@ -46,7 +48,9 @@ export async function saveCategoryAction(id: string | null, _state: CategoryForm
 }
 
 export async function deleteCategoryAction(id: string): Promise<void> {
-  if (!(await auth())?.user) redirect("/login?callbackUrl=/admin/blog/categories");
+  const session = await auth();
+  if (!session?.user) redirect("/login?callbackUrl=/admin/blog/categories");
+  if (!hasAdminPermission(session.user.role, "manage_categories")) redirect("/admin/forbidden");
   if (!isCategoryId(id)) redirect("/admin/blog/categories?delete=failed");
   try {
     const result = await prisma.$transaction(async (transaction) => {
