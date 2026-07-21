@@ -10,6 +10,9 @@ const credentialsSchema = z.object({
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Hostinger terminates HTTPS at a trusted reverse proxy. AUTH_URL supplies
+  // the canonical public origin instead of the proxy's 0.0.0.0:3000 origin.
+  trustHost: true,
   pages: {
     signIn: "/login",
   },

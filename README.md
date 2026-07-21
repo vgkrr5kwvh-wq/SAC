@@ -2,7 +2,7 @@
 
 The Self Apply Center website is a standard Next.js App Router application using React, TypeScript, Tailwind CSS, and the Node.js runtime.
 
-Shared navigation and footer components live in `components/`. Route content is defined in `app/site-data.ts`, while blog articles are maintained in `app/blog-posts.ts`.
+Shared navigation and footer components live in `components/`. Route content is defined in `app/site-data.ts`, while blog articles are maintained through the database-backed admin CMS.
 
 Administrative maintenance commands live in `scripts/`. They are intended for explicit, one-time operational use and are not part of the application runtime.
 
@@ -56,7 +56,7 @@ Required server environment variables:
 For local development:
 
 1. Copy `.env.example` to `.env`.
-2. Fill in `DATABASE_URL`, `AUTH_SECRET`, and the three Cloudinary values.
+2. Fill in `DATABASE_URL`, `AUTH_SECRET`, and the three Cloudinary values. For local development, `AUTH_URL` can remain empty so Auth.js uses `http://localhost:3000` from the request.
 3. Restart `npm run dev` after changing environment variables. Next.js reads them when the server starts.
 
 For Hostinger production, add the same variable names and production values in the Node.js Web App environment-variable settings. Do not upload or commit a populated environment file. After changing a value, use **Deployments → Settings and redeploy**, or restart the Node.js application in hPanel, so the running process receives the new environment.
@@ -129,7 +129,7 @@ Hostinger Node.js Web Apps require a Business Web Hosting or supported Cloud hos
 8. Set the build command to `npm run build`.
 9. Set the start command to `npm run start`.
 10. If Hostinger requests an output directory, enter `.next`. Do not configure a custom entry file for a detected Next.js application.
-11. Add `DATABASE_URL`, `AUTH_SECRET`, and the Cloudinary variables documented in `.env.example`, plus the enquiry variables documented above when that backend is enabled.
+11. Add `DATABASE_URL`, `AUTH_SECRET`, and the Cloudinary variables documented in `.env.example`, plus the enquiry variables documented above when that backend is enabled. Hostinger runs Next.js behind a reverse proxy, so also set `AUTH_URL=https://beta.selfapplycenter.com` and `AUTH_TRUST_HOST=true`. Do not include `/api/auth` in `AUTH_URL`.
 12. Run `npm run db:migrate:deploy` against the production database before starting the updated application. Do not run `prisma migrate dev` in production.
 13. Deploy and verify the temporary preview, including the Media Library upload flow, before directing production traffic to it.
 14. Attach `selfapplycenter.com` and enable its SSL certificate in hPanel. Confirm both the apex domain and `www` resolve to the deployed Node.js website.
