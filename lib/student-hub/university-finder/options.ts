@@ -1,5 +1,17 @@
 export type FinderOption<Value extends string = string> = Readonly<{ value: Value; label: string }>;
 
+export const selectPrompts = {
+  destination: "Select a destination",
+  studyLevel: "Select a study level",
+  subject: "Select a subject area",
+  preferredIntake: "Select an intake",
+  previousQualification: "Select a qualification",
+  gradingSystem: "Select a grading system",
+  englishTest: "Select an English test",
+  locationType: "Select a location preference",
+  scholarshipPreference: "Select a scholarship preference",
+} as const;
+
 export const destinationOptions = [
   { value: "US", label: "United States" },
   { value: "CA", label: "Canada" },
