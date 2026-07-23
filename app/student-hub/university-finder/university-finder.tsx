@@ -5,6 +5,13 @@ import ToolErrorSummary from "@/components/student-hub/tool-error-summary";
 import ToolFormActions from "@/components/student-hub/tool-form-actions";
 import ToolProgress from "@/components/student-hub/tool-progress";
 import ToolStep from "@/components/student-hub/tool-step";
+import {
+  universityFinderSchema,
+  universityFinderStep1Schema,
+  universityFinderStep2Schema,
+  universityFinderStep3Schema,
+  universityFinderStep4Schema,
+} from "@/lib/student-hub/university-finder/schema";
 import { initialUniversityFinderAnswers, type UniversityFinderAnswers, type UniversityFinderField } from "@/lib/student-hub/university-finder/types";
 import FinderStepAcademicProfile from "./finder-step-academic-profile";
 import FinderStepEnglishPreparation from "./finder-step-english-preparation";
@@ -35,27 +42,22 @@ const fieldIds: Record<UniversityFinderField, string> = {
   scholarshipPreference: "finder-scholarship",
 };
 
-const requiredMessages: Partial<Record<UniversityFinderField, string>> = {
-  destination: "Select an intended destination.",
-  studyLevel: "Select a study level.",
-  subject: "Select an intended subject.",
-  previousQualification: "Select your previous qualification.",
-  gradingSystem: "Select a GPA scale or grading system.",
-  academicScore: "Enter your GPA or percentage.",
-  customGpaScale: "Enter the maximum grading scale.",
-  englishTest: "Select an English test.",
-  englishScore: "Enter your English test score.",
-  otherEnglishTest: "Enter the other test details.",
-};
-
 type FinderErrors = Partial<Record<UniversityFinderField, string>>;
-
-const scoreBasedTests: Readonly<Record<string, true>> = {
-  IELTS: true,
-  TOEFL: true,
-  PTE: true,
-  DUOLINGO: true,
+type ValidationResult = {
+  success: true;
+} | {
+  success: false;
+  error: {
+    issues: readonly { path: readonly PropertyKey[]; message: string }[];
+  };
 };
+
+const stepSchemas = [
+  universityFinderStep1Schema,
+  universityFinderStep2Schema,
+  universityFinderStep3Schema,
+  universityFinderStep4Schema,
+] as const;
 
 export default function UniversityFinder() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -63,6 +65,7 @@ export default function UniversityFinder() {
   const [errors, setErrors] = useState<FinderErrors>({});
   const [statusMessage, setStatusMessage] = useState("");
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const errorSummaryRef = useRef<HTMLDivElement>(null);
   const hasChangedStep = useRef(false);
 
   useEffect(() => {
@@ -93,28 +96,25 @@ export default function UniversityFinder() {
     moveTo(1);
   };
 
-  const validateCurrentStep = () => {
-    const requiredFields: UniversityFinderField[] = currentStep === 1
-      ? ["destination", "studyLevel", "subject"]
-      : currentStep === 2
-        ? ["previousQualification", "gradingSystem", "academicScore", ...(answers.gradingSystem === "other" ? ["customGpaScale" as const] : [])]
-        : currentStep === 3
-          ? ["englishTest", ...(answers.englishTest in scoreBasedTests ? ["englishScore" as const] : []), ...(answers.englishTest === "OTHER" ? ["otherEnglishTest" as const] : [])]
-          : [];
-    const nextErrors: FinderErrors = {};
-
-    requiredFields.forEach((field) => {
-      if (!answers[field].trim()) nextErrors[field] = requiredMessages[field];
-    });
-
-    setErrors(nextErrors);
-    const firstInvalidField = requiredFields.find((field) => nextErrors[field]);
-    if (firstInvalidField) {
-      requestAnimationFrame(() => document.getElementById(fieldIds[firstInvalidField])?.focus());
-      return false;
+  const applyValidation = (result: ValidationResult) => {
+    if (result.success) {
+      setErrors({});
+      return true;
     }
 
-    return true;
+    const nextErrors: FinderErrors = {};
+    result.error.issues.forEach((issue) => {
+      const field = issue.path[0] as UniversityFinderField | undefined;
+      if (field && !nextErrors[field]) nextErrors[field] = issue.message;
+    });
+    setErrors(nextErrors);
+    requestAnimationFrame(() => errorSummaryRef.current?.focus());
+    return false;
+  };
+
+  const validateCurrentStep = () => {
+    const schema = stepSchemas[currentStep - 1];
+    return applyValidation(schema.safeParse(answers));
   };
 
   const continueToNextStep = () => {
@@ -123,7 +123,7 @@ export default function UniversityFinder() {
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!validateCurrentStep()) return;
+    if (!applyValidation(universityFinderSchema.safeParse(answers))) return;
     setStatusMessage("Matching engine will be implemented in the next phase.");
   };
 
@@ -137,11 +137,11 @@ export default function UniversityFinder() {
     <ToolProgress currentStep={currentStep} />
     <form className="student-finder-form" onSubmit={submit} noValidate>
       <ToolStep stepNumber={currentStep} title={step.title} description={step.description} headingRef={headingRef}>
-        <ToolErrorSummary errors={errorList} />
+        <ToolErrorSummary errors={errorList} ref={errorSummaryRef} />
         {currentStep === 1 ? <FinderStepStudyPlans answers={answers} errors={errors} update={update} /> : null}
         {currentStep === 2 ? <FinderStepAcademicProfile answers={answers} errors={errors} update={update} /> : null}
         {currentStep === 3 ? <FinderStepEnglishPreparation answers={answers} errors={errors} update={update} /> : null}
-        {currentStep === 4 ? <FinderStepPreferencesReview answers={answers} update={update} /> : null}
+        {currentStep === 4 ? <FinderStepPreferencesReview answers={answers} errors={errors} update={update} /> : null}
       </ToolStep>
       <ToolFormActions currentStep={currentStep} totalSteps={steps.length} onBack={() => moveTo(currentStep - 1)} onContinue={continueToNextStep} onReset={reset} />
       {statusMessage ? <div className="student-finder-submit-status" role="status" aria-live="polite">{statusMessage}</div> : null}
