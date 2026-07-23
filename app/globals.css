@@ -1510,6 +1510,82 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
   .student-tool-card:hover { transform: none; }
 }
 
+/* University Finder questionnaire */
+.student-finder-section { background: #f7fafc; }
+.student-finder-demo-notice { max-width: 980px; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; margin: 0 auto 24px; padding: 18px 22px; border: 1px solid #bcdcf2; border-radius: var(--radius-md); background: #eaf6ff; }
+.student-finder-demo-notice strong { color: var(--blue-dark); white-space: nowrap; }
+.student-finder-demo-notice p { margin: 0; color: var(--muted); }
+.student-finder-shell { max-width: 980px; margin-inline: auto; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-xl); background: #fff; box-shadow: var(--shadow-md); }
+.student-finder-progress { padding: 26px 34px; border-bottom: 1px solid var(--line); background: #f5f9fc; }
+.student-finder-progress > p { margin: 0 0 18px; color: var(--blue-dark); font-size: .8rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.student-finder-progress ol { position: relative; display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.student-finder-progress ol::before { content: ""; position: absolute; top: 17px; left: 7%; right: 7%; height: 2px; background: #d7e3ec; }
+.student-finder-progress li { position: relative; z-index: 1; display: grid; justify-items: center; gap: 8px; color: #788597; text-align: center; }
+.student-finder-progress li > span { width: 36px; height: 36px; display: grid; place-items: center; border: 2px solid #d0dce6; border-radius: 50%; background: #fff; font-weight: 800; }
+.student-finder-progress li strong { font-size: .78rem; line-height: 1.3; }
+.student-finder-progress li.is-current, .student-finder-progress li.is-complete { color: var(--blue-dark); }
+.student-finder-progress li.is-current > span { color: #fff; border-color: var(--blue); background: var(--blue); box-shadow: 0 0 0 5px rgba(2,132,232,.1); }
+.student-finder-progress li.is-complete > span { color: var(--blue-dark); border-color: #9ed1f3; background: #e3f4ff; }
+.student-finder-form { padding: clamp(28px,5vw,50px); }
+.student-finder-step-heading { max-width: 680px; margin-bottom: 30px; }
+.student-finder-step-heading > span { color: var(--blue-dark); font-size: .76rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.student-finder-step-heading h2 { margin: 5px 0 9px; font-size: clamp(1.9rem,4vw,2.65rem); }
+.student-finder-step-heading h2:focus-visible { outline: 3px solid rgba(2,132,232,.28); outline-offset: 5px; border-radius: 3px; }
+.student-finder-step-heading p { margin: 0; color: var(--muted); }
+.student-finder-validation-placeholder { margin-bottom: 24px; padding: 11px 14px; border: 1px dashed #c9d8e4; border-radius: var(--radius-sm); color: #718094; background: #fafcfd; font-size: .82rem; }
+.student-finder-error-summary { margin-bottom: 24px; padding: 18px; border: 1px solid #e4a6a6; border-radius: var(--radius-sm); color: #7c1919; background: #fff5f5; }
+.student-finder-error-summary h3 { margin-bottom: 8px; font-size: 1rem; }
+.student-finder-error-summary ul { margin: 0; padding-left: 20px; }
+.student-finder-field-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; }
+.student-finder-field { min-width: 0; }
+.student-finder-field > label { display: block; margin-bottom: 8px; color: #263345; font-weight: 750; }
+.student-finder-field > label span { color: var(--red); }
+.student-finder-field input, .student-finder-field select { width: 100%; min-height: 52px; padding: 12px 14px; border: 1px solid #bdcbd7; border-radius: var(--radius-sm); color: var(--ink); background: #fff; outline: none; }
+.student-finder-field input:focus, .student-finder-field select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(2,132,232,.14); }
+.student-finder-help { margin: 7px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
+.student-finder-field-error { min-height: 18px; margin-top: 3px; color: var(--red); font-size: .8rem; font-weight: 650; }
+.student-finder-info { grid-column: 1 / -1; margin: 0; padding: 18px; border-radius: var(--radius-sm); color: #31526b; background: #edf7fe; }
+.student-finder-preferences { display: grid; gap: 34px; }
+.student-finder-review { padding: 26px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #f8fafc; }
+.student-finder-review h3 { margin-bottom: 20px; }
+.student-finder-review dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1px; margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--line); }
+.student-finder-review dl > div { min-width: 0; padding: 14px 16px; background: #fff; }
+.student-finder-review dt { color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.student-finder-review dd { margin: 4px 0 0; overflow-wrap: anywhere; font-weight: 700; }
+.student-finder-actions { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 34px; padding-top: 24px; border-top: 1px solid var(--line); }
+.student-finder-actions > div { display: flex; gap: 12px; }
+.student-finder-submit-status { min-height: 28px; margin: 18px 0 0; color: var(--blue-dark); font-weight: 800; text-align: right; }
+.student-finder-disclaimer { padding: 0 0 90px; background: #f7fafc; }
+.student-finder-disclaimer .shell { max-width: 980px; padding: 28px 32px; border: 1px solid #cfe2f0; border-radius: var(--radius-lg); background: #edf7fe; }
+.student-finder-disclaimer h2 { margin-bottom: 8px; font-size: 1.35rem; }
+.student-finder-disclaimer p { margin: 0; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .student-finder-demo-notice { grid-template-columns: 1fr; gap: 5px; }
+  .student-finder-progress { padding: 22px 20px; }
+  .student-finder-progress ol { grid-template-columns: repeat(4,36px); justify-content: space-between; }
+  .student-finder-progress li strong { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+  .student-finder-progress ol::before { left: 18px; right: 18px; }
+  .student-finder-field-grid, .student-finder-review dl { grid-template-columns: 1fr; }
+  .student-finder-actions { align-items: stretch; flex-direction: column-reverse; }
+  .student-finder-actions > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .student-finder-actions > div .button:only-child { grid-column: 1 / -1; }
+  .student-finder-actions > .button { width: 100%; }
+  .student-finder-submit-status { text-align: left; }
+}
+
+@media (max-width: 480px) {
+  .student-finder-form { padding: 26px 20px; }
+  .student-finder-actions > div { grid-template-columns: 1fr; }
+  .student-finder-actions > div .button { width: 100%; }
+  .student-finder-review { padding: 18px; }
+  .student-finder-disclaimer .shell { width: min(100% - 40px,980px); padding: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-finder-field input, .student-finder-field select { scroll-behavior: auto; transition: none; }
+}
+
 /* Keep CMS navigation isolated from legacy admin page styles declared above. */
 .admin-sidebar .admin-navigation { display: grid; gap: 5px; padding: 0; overflow: visible; border: 0; background: transparent; }
 .admin-sidebar .admin-navigation a { min-width: 0; display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 9px; color: #aebbcf; font-size: .86rem; font-weight: 650; }

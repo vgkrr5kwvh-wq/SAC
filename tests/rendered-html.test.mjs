@@ -135,6 +135,23 @@ test("renders the registry-driven Student Hub landing page", async () => {
   assert.match(html, /"@type":"ItemList"/i);
 });
 
+test("renders the University Match Finder questionnaire shell", async () => {
+  const response = await render("/student-hub/university-finder");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+
+  assert.match(html, /Build your university search profile/i);
+  assert.match(html, /aria-label="University Finder progress"/i);
+  assert.match(html, /Step [^<]*(?:<!-- -->)?1[^<]*(?:<!-- -->)? of [^<]*(?:<!-- -->)?4/i);
+  assert.match(html, /Intended study destination/i);
+  assert.match(html, /Study level/i);
+  assert.match(html, /Intended subject or major/i);
+  assert.match(html, /Preferred intake/i);
+  assert.match(html, /matching engine is not active yet/i);
+  assert.match(html, /Educational guidance only/i);
+  assert.doesNotMatch(html, /You are eligible|guaranteed admission/i);
+});
+
 test("renders the complete consultancy page set", async () => {
   const expectedPages = [
     ["/about", /A consultancy built around clear student decisions/i],
