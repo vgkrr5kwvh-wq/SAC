@@ -114,6 +114,27 @@ test("renders page-specific frequently asked questions", async () => {
   assert.match(await contact.text(), /When is the SAC office open/i);
 });
 
+test("renders the registry-driven Student Hub landing page", async () => {
+  const response = await render("/student-hub");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+
+  assert.match(html, /Plan Your Study Abroad Journey with Confidence/i);
+  assert.match(html, /University Finder/i);
+  assert.match(html, /Visa Eligibility Checker/i);
+  assert.match(html, /Cost Calculator/i);
+  assert.match(html, /Scholarship Estimator/i);
+  assert.match(html, /Document Checklist/i);
+  assert.match(html, /Launching First/i);
+  assert.match(html, /Coming Soon/i);
+  assert.match(html, /USA and UK visa interview preparation/i);
+  assert.match(html, /href="https:\/\/mock\.osom\.technimus\.com\/"/i);
+  assert.match(html, /target="_blank"/i);
+  assert.match(html, /rel="noopener noreferrer"/i);
+  assert.match(html, /"@type":"CollectionPage"/i);
+  assert.match(html, /"@type":"ItemList"/i);
+});
+
 test("renders the complete consultancy page set", async () => {
   const expectedPages = [
     ["/about", /A consultancy built around clear student decisions/i],
@@ -125,6 +146,7 @@ test("renders the complete consultancy page set", async () => {
     ["/events", /Focused sessions for the decisions students face next/i],
     ["/contact", /Talk to a counsellor about your study goal/i],
     ["/partner-with-us", /Build clearer international study pathways/i],
+    ["/student-hub", /Plan Your Study Abroad Journey with Confidence/i],
   ];
 
   for (const [path, heading] of expectedPages) {

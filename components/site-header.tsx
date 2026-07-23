@@ -10,6 +10,7 @@ const links = [
   ["/about", "About"],
   ["/services", "Services"],
   ["/destinations", "Destinations"],
+  ["/student-hub", "Student Hub"],
   ["/blog", "Blogs"],
   ["/events", "Events"],
   ["/contact", "Contact"],
@@ -37,7 +38,7 @@ export default function SiteHeader() {
           </button>
           <div className={`nav-links${open ? " is-open" : ""}`} id="primary-nav">
             {links.map(([href, label]) => (
-              <Link className={pathname === href ? "is-active" : ""} href={href} key={href} onClick={() => setOpen(false)}>{label}</Link>
+              <Link className={pathname === href || (href !== "/" && pathname.startsWith(`${href}/`)) ? "is-active" : ""} href={href} key={href} onClick={() => setOpen(false)}>{label}</Link>
             ))}
             <a className="nav-cta" href="https://sac.osom.global/1/student" target="_blank" rel="noopener noreferrer">Apply Now</a>
           </div>
