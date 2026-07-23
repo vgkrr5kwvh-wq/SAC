@@ -24,9 +24,15 @@ export const metadata: Metadata = {
   description:
     "Self Apply Center helps students apply abroad with transparent guidance, document review, destination planning, and application tracking.",
   icons: {
-    icon: "/sac-logo.png",
-    shortcut: "/sac-logo.png",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
+  manifest: "/manifest.webmanifest",
   openGraph: {
     title: "Self Apply Center",
     description: "Apply abroad yourself, with experts beside you.",

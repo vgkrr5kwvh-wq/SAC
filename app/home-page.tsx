@@ -4,8 +4,6 @@ import Image from "next/image";
 import { FormEvent, useState } from "react";
 
 const applyUrl = "https://sac.osom.global/1/student";
-const whatsappUrl =
-  "https://wa.me/9779761642336?text=Hello%20Self%20Apply%20Center%2C%20I%20want%20to%20ask%20about%20studying%20abroad.";
 
 const services = [
   ["01", "Course & University Mapping", "Build a realistic shortlist around your academics, budget, career goals, intake, and preferred countries.", "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=85"],
@@ -95,7 +93,7 @@ export default function HomePage() {
                 document review, destination guidance, and transparent step-by-step support.
               </p>
               <div className="button-row">
-                <a className="button primary" href={applyUrl} target="_blank" rel="noopener noreferrer">Start your application <span>↗</span></a>
+                <a className="button primary" href={applyUrl} target="_blank" rel="noopener noreferrer">Start your application</a>
                 <a className="button secondary" href="#destinations">Explore destinations</a>
               </div>
               <dl className="hero-metrics">
@@ -241,7 +239,16 @@ export default function HomePage() {
               <div className="contact-details">
                 <a href="mailto:info@selfapplycenter.com"><span>Email</span><strong>info@selfapplycenter.com</strong></a>
                 <a href="tel:+977014012581"><span>Office</span><strong>01-4012581</strong></a>
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer"><span>WhatsApp</span><strong>+977 9761642336</strong></a>
+                <div>
+                  <span>WhatsApp</span>
+                  <strong>
+                    <a href="https://wa.me/9779761642348" target="_blank" rel="noopener noreferrer">9761642348</a>
+                    {" | "}
+                    <a href="https://wa.me/9779761642349" target="_blank" rel="noopener noreferrer">9761642349</a>
+                    {" | "}
+                    <a href="https://wa.me/9779761642336" target="_blank" rel="noopener noreferrer">9761642336</a>
+                  </strong>
+                </div>
                 <div><span>Visit</span><strong>Star Mall, 2nd Floor, Putalisadak, Kathmandu</strong></div>
               </div>
             </div>

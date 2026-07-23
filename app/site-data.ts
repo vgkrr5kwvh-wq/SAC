@@ -149,7 +149,7 @@ export const sitePages: Record<string, SitePage> = {
     ],
     sections: [
       { title: "Visit our office", copy: "Star Mall, 2nd Floor, Putalisadak, Kathmandu", items: ["Sunday–Friday", "9:30 AM–5:30 PM"] },
-      { title: "Call or WhatsApp", copy: "Office: 01-4012581 · WhatsApp: +977 9761642336", items: ["WhatsApp counselling enquiries welcome"] },
+      { title: "Call or WhatsApp", copy: "Office: 01-4012581 · WhatsApp: 9761642348 | 9761642349 | 9761642336", items: ["WhatsApp counselling enquiries welcome"] },
       { title: "Email", copy: "info@selfapplycenter.com", items: ["Include your intended country, course, and intake when possible"] },
     ],
   },

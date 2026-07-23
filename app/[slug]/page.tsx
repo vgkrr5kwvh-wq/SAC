@@ -6,7 +6,7 @@ import PartnerForm from "../../components/partner-form";
 import { sitePages } from "../site-data";
 
 const pageVisuals: Record<string, string[]> = {
-  about: ["https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=82", "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1000&q=82", "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1000&q=82"],
+  about: ["https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=82", "/about-sac-difference.jpg", "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1000&q=82"],
   "our-team": ["https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1000&q=82", "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1000&q=82", "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1000&q=82"],
   services: ["https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=1000&q=82", "https://images.unsplash.com/photo-1456324504439-367cee3b3c32?auto=format&fit=crop&w=1000&q=82", "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=82", "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1000&q=82"],
   destinations: ["https://images.unsplash.com/photo-1485738422979-f5c462d49f74?auto=format&fit=crop&w=1000&q=82", "https://images.unsplash.com/photo-1517935706615-2717063c2225?auto=format&fit=crop&w=1000&q=82", "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=1000&q=82", "https://images.unsplash.com/photo-1517154421773-0529f29ea451?auto=format&fit=crop&w=1000&q=82"],
@@ -49,10 +49,20 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
               <div className="page-card-copy">
               <span className="content-index">{String(index + 1).padStart(2, "0")}</span>
               <h2>{section.title}</h2>
-              <p>{section.copy}</p>
+              {isContact && index === 1 ? (
+                <p>
+                  Office: 01-4012581 · WhatsApp:{" "}
+                  <a href="https://wa.me/9779761642348" target="_blank" rel="noopener noreferrer">9761642348</a>
+                  {" | "}
+                  <a href="https://wa.me/9779761642349" target="_blank" rel="noopener noreferrer">9761642349</a>
+                  {" | "}
+                  <a href="https://wa.me/9779761642336" target="_blank" rel="noopener noreferrer">9761642336</a>
+                </p>
+              ) : (
+                <p>{section.copy}</p>
+              )}
               {section.items && <ul>{section.items.map((item) => <li key={item}>{item}</li>)}</ul>}
               {isContact && index === 0 && <a className="text-action" href="https://www.google.com/maps/search/?api=1&query=Star%20Mall%2C%202nd%20Floor%2C%20Putalisadak%2C%20Kathmandu" target="_blank" rel="noopener noreferrer">Open in Google Maps →</a>}
-              {isContact && index === 1 && <a className="text-action" href="https://wa.me/9779761642336" target="_blank" rel="noopener noreferrer">Message on WhatsApp →</a>}
               {isContact && index === 2 && <a className="text-action" href="mailto:info@selfapplycenter.com">Send an email →</a>}
               </div>
             </article>

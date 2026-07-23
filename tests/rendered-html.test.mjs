@@ -101,6 +101,12 @@ test("renders the database-backed blog and adaptive partnership fields", async (
 });
 
 test("renders page-specific frequently asked questions", async () => {
+  const about = await render("/about");
+  assert.match(await about.text(), /src="\/about-sac-difference\.jpg"/i);
+  const aboutImage = await fetch(`${origin}/about-sac-difference.jpg`);
+  assert.equal(aboutImage.status, 200);
+  assert.match(aboutImage.headers.get("content-type") ?? "", /^image\/jpeg\b/i);
+
   const services = await render("/services");
   assert.match(await services.text(), /Do you review SOPs and application documents/i);
 
@@ -111,7 +117,16 @@ test("renders page-specific frequently asked questions", async () => {
   assert.match(await partner.text(), /Who can submit a partnership enquiry/i);
 
   const contact = await render("/contact");
-  assert.match(await contact.text(), /When is the SAC office open/i);
+  const contactHtml = await contact.text();
+  assert.match(contactHtml, /When is the SAC office open/i);
+  const whatsappHrefs = [...contactHtml.matchAll(/<a[^>]+href="(https:\/\/wa\.me\/977976164(?:2348|2349|2336))"[^>]*>\s*976164(?:2348|2349|2336)\s*<\/a>/g)]
+    .map((match) => match[1])
+    .sort();
+  assert.deepEqual(whatsappHrefs, [
+    "https://wa.me/9779761642336",
+    "https://wa.me/9779761642348",
+    "https://wa.me/9779761642349",
+  ]);
 });
 
 test("renders the complete consultancy page set", async () => {
@@ -147,7 +162,9 @@ test("ships project branding and social-preview assets", async () => {
 
   assert.match(layout, /Self Apply Center/);
   assert.match(layout, /\/og\.png/);
-  assert.match(layout, /\/sac-logo\.png/);
+  assert.match(layout, /\/favicon\.svg/);
+  assert.match(layout, /\/favicon\.ico/);
+  assert.match(layout, /\/apple-touch-icon\.png/);
   assert.match(page, /<HomePage \/>/);
   assert.match(homePage, /self-apply-center-hero\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
@@ -167,4 +184,9 @@ test("ships project branding and social-preview assets", async () => {
 
   const missingPage = await render("/this-page-does-not-exist");
   assert.equal(missingPage.status, 404);
+  const missingPageHtml = await missingPage.text();
+  assert.match(missingPageHtml, /Page Not Found/i);
+  assert.match(missingPageHtml, /Return Home/i);
+  assert.match(missingPageHtml, /Start Your Application/i);
+  assert.match(missingPageHtml, /name="robots" content="noindex, nofollow"/i);
 });
