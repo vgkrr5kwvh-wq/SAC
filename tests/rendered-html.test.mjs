@@ -135,10 +135,12 @@ test("renders the registry-driven Student Hub landing page", async () => {
   assert.match(html, /"@type":"ItemList"/i);
 });
 
-test("renders the University Match Finder questionnaire shell", async () => {
-  const [response, clientSource] = await Promise.all([
+test("renders the University Match Finder questionnaire and results integration", async () => {
+  const [response, clientSource, resultsSource, cardSource] = await Promise.all([
     render("/student-hub/university-finder"),
     readFile(new URL("../app/student-hub/university-finder/university-finder.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/student-hub/results/results-page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/student-hub/results/recommendation-card.tsx", import.meta.url), "utf8"),
   ]);
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -152,11 +154,16 @@ test("renders the University Match Finder questionnaire shell", async () => {
   assert.match(html, /Study level/i);
   assert.match(html, /Intended subject or major/i);
   assert.match(html, /Preferred intake/i);
-  assert.match(html, /matching engine is not active yet/i);
+  assert.match(html, /Demonstration experience/i);
   assert.match(html, /Educational guidance only/i);
   assert.doesNotMatch(html, /You are eligible|guaranteed admission/i);
-  assert.match(clientSource, /Matching engine will be implemented in the next phase\./);
-  assert.doesNotMatch(clientSource, /scoring|recommendations|compatibility/i);
+  assert.match(clientSource, /generateUniversityRecommendations/);
+  assert.match(resultsSource, /Universities to review/);
+  assert.match(resultsSource, /totalEvaluated/);
+  assert.match(cardSource, /Aligns with your profile/);
+  assert.match(cardSource, /Needs verification/);
+  assert.match(cardSource, /May not align/);
+  assert.doesNotMatch(`${resultsSource}\n${cardSource}`, /internalPreferenceScore|reasonCode|stableUniversityId|categoryRank/);
 });
 
 test("renders the complete consultancy page set", async () => {

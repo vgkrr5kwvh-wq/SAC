@@ -5,6 +5,10 @@ import ToolErrorSummary from "@/components/student-hub/tool-error-summary";
 import ToolFormActions from "@/components/student-hub/tool-form-actions";
 import ToolProgress from "@/components/student-hub/tool-progress";
 import ToolStep from "@/components/student-hub/tool-step";
+import LoadingResults from "@/components/student-hub/results/loading-results";
+import ResultsPage from "@/components/student-hub/results/results-page";
+import { sampleUniversities } from "@/lib/student-hub/universities";
+import { generateUniversityRecommendations } from "@/lib/student-hub/university-finder/recommendations";
 import {
   universityFinderSchema,
   universityFinderStep1Schema,
@@ -12,7 +16,12 @@ import {
   universityFinderStep3Schema,
   universityFinderStep4Schema,
 } from "@/lib/student-hub/university-finder/schema";
-import { initialUniversityFinderAnswers, type UniversityFinderAnswers, type UniversityFinderField } from "@/lib/student-hub/university-finder/types";
+import {
+  initialUniversityFinderAnswers,
+  type UniversityFinderAnswers,
+  type UniversityFinderField,
+  type UniversityRecommendationCollection,
+} from "@/lib/student-hub/university-finder/types";
 import FinderStepAcademicProfile from "./finder-step-academic-profile";
 import FinderStepEnglishPreparation from "./finder-step-english-preparation";
 import FinderStepPreferencesReview from "./finder-step-preferences-review";
@@ -63,7 +72,8 @@ export default function UniversityFinder() {
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<UniversityFinderAnswers>(initialUniversityFinderAnswers);
   const [errors, setErrors] = useState<FinderErrors>({});
-  const [statusMessage, setStatusMessage] = useState("");
+  const [recommendations, setRecommendations] = useState<UniversityRecommendationCollection | null>(null);
+  const [isPreparingResults, setIsPreparingResults] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const hasChangedStep = useRef(false);
@@ -80,19 +90,19 @@ export default function UniversityFinder() {
       delete next[field];
       return next;
     });
-    setStatusMessage("");
   };
 
   const moveTo = (step: number) => {
     hasChangedStep.current = true;
     setCurrentStep(step);
     setErrors({});
-    setStatusMessage("");
   };
 
   const reset = () => {
     setAnswers(initialUniversityFinderAnswers);
     setErrors({});
+    setRecommendations(null);
+    setIsPreparingResults(false);
     moveTo(1);
   };
 
@@ -123,8 +133,24 @@ export default function UniversityFinder() {
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!applyValidation(universityFinderSchema.safeParse(answers))) return;
-    setStatusMessage("Matching engine will be implemented in the next phase.");
+    const result = universityFinderSchema.safeParse(answers);
+    if (!result.success) {
+      applyValidation(result);
+      return;
+    }
+    applyValidation(result);
+
+    setIsPreparingResults(true);
+    requestAnimationFrame(() => {
+      setRecommendations(generateUniversityRecommendations(result.data, sampleUniversities));
+      setIsPreparingResults(false);
+    });
+  };
+
+  const modifyAnswers = () => {
+    setRecommendations(null);
+    setIsPreparingResults(false);
+    moveTo(4);
   };
 
   const errorList = Object.entries(errors).map(([field, message]) => ({
@@ -132,6 +158,19 @@ export default function UniversityFinder() {
     message,
   }));
   const step = steps[currentStep - 1];
+
+  if (isPreparingResults) return <LoadingResults />;
+
+  if (recommendations) {
+    return (
+      <ResultsPage
+        answers={answers}
+        recommendations={recommendations}
+        totalEvaluated={sampleUniversities.length}
+        onModifyAnswers={modifyAnswers}
+      />
+    );
+  }
 
   return <section className="student-finder-shell" aria-label="University Match Finder questionnaire">
     <ToolProgress currentStep={currentStep} />
@@ -144,7 +183,6 @@ export default function UniversityFinder() {
         {currentStep === 4 ? <FinderStepPreferencesReview answers={answers} errors={errors} update={update} /> : null}
       </ToolStep>
       <ToolFormActions currentStep={currentStep} totalSteps={steps.length} onBack={() => moveTo(currentStep - 1)} onContinue={continueToNextStep} onReset={reset} />
-      {statusMessage ? <div className="student-finder-submit-status" role="status" aria-live="polite">{statusMessage}</div> : null}
     </form>
   </section>;
 }

@@ -1590,6 +1590,88 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
   .student-finder-field input, .student-finder-field select { scroll-behavior: auto; transition: none; }
 }
 
+/* University Finder results */
+.finder-results { max-width: 1100px; margin-inline: auto; }
+.finder-results-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 40px; margin-bottom: 28px; }
+.finder-results-heading h2 { margin-bottom: 12px; font-size: clamp(2.15rem,4vw,3.4rem); }
+.finder-results-heading h2:focus-visible { outline: 3px solid rgba(2,132,232,.28); outline-offset: 6px; border-radius: 4px; }
+.finder-results-heading p { max-width: 690px; margin: 0; color: var(--muted); font-size: 1.02rem; }
+.finder-results-heading dl { display: grid; grid-template-columns: repeat(2,110px); gap: 10px; margin: 0; }
+.finder-results-heading dl > div { padding: 15px 16px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; text-align: center; box-shadow: var(--shadow-sm); }
+.finder-results-heading dt { color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; }
+.finder-results-heading dd { margin: 1px 0 0; color: var(--blue-dark); font-size: 1.65rem; font-weight: 800; line-height: 1.2; }
+.finder-results-demo-notice { display: grid; grid-template-columns: 38px 1fr; gap: 15px; margin-bottom: 24px; padding: 20px 22px; border: 1px solid #9fcfee; border-radius: var(--radius-md); background: #eaf6ff; }
+.finder-results-demo-notice > span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--blue-dark); font-family: Georgia,serif; font-size: 1.1rem; font-weight: 800; }
+.finder-results-demo-notice h2 { margin: 1px 0 5px; font-size: 1.12rem; }
+.finder-results-demo-notice p { margin: 0; color: #36566e; }
+.finder-results-list { display: grid; gap: 24px; margin: 0; padding: 0; list-style: none; }
+.finder-recommendation-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-xl); background: #fff; box-shadow: var(--shadow-md); }
+.finder-recommendation-header { display: flex; justify-content: space-between; gap: 24px; padding: clamp(24px,4vw,36px); border-bottom: 1px solid var(--line); background: linear-gradient(135deg,#fff 50%,#edf8ff); }
+.finder-recommendation-header h2 { margin: 14px 0 7px; font-size: clamp(1.75rem,3vw,2.45rem); }
+.finder-recommendation-header p { margin: 0; color: var(--muted); font-weight: 650; }
+.finder-recommendation-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.finder-result-badge, .finder-featured-badge, .finder-sample-badge { display: inline-flex; align-items: center; min-height: 28px; padding: 5px 10px; border-radius: 999px; font-size: .7rem; font-weight: 800; letter-spacing: .035em; line-height: 1.2; text-transform: uppercase; }
+.finder-result-badge.is-strong-profile-match { color: #0b6238; background: #dcf7e8; }
+.finder-result-badge.is-potential-match { color: #075f93; background: #def2ff; }
+.finder-result-badge.is-requires-counsellor-review { color: #80550b; background: #fff2ce; }
+.finder-result-badge.is-insufficient-verified-data { color: #5c6573; background: #e9edf2; }
+.finder-featured-badge { color: #724b00; background: #ffe9a8; }
+.finder-sample-badge { color: #5f4678; background: #eee4f8; }
+.finder-compatibility-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; margin: 0; border-bottom: 1px solid var(--line); background: var(--line); }
+.finder-compatibility-summary > div { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 15px; background: #fafcfd; }
+.finder-compatibility-summary dt { color: var(--muted); font-size: .76rem; font-weight: 750; text-transform: uppercase; }
+.finder-compatibility-summary dd { width: 28px; height: 28px; display: grid; place-items: center; margin: 0; border-radius: 50%; font-weight: 800; }
+.finder-compatibility-summary .is-aligns dd { color: #0b6238; background: #dcf7e8; }
+.finder-compatibility-summary .is-verify dd { color: #80550b; background: #fff2ce; }
+.finder-compatibility-summary .is-differs dd { color: #8a2020; background: #fde4e4; }
+.finder-explanation-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; padding: clamp(24px,4vw,36px); }
+.finder-explanation-group { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fbfcfd; }
+.finder-explanation-group h4 { display: flex; align-items: center; gap: 9px; margin: 0; font-size: .97rem; }
+.finder-explanation-group h4 span { width: 27px; height: 27px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; font-family: Arial,sans-serif; }
+.finder-explanation-group.is-aligns h4 span { color: #0b6238; background: #dcf7e8; }
+.finder-explanation-group.is-verify h4 span { color: #80550b; background: #fff2ce; }
+.finder-explanation-group.is-differs h4 span { color: #8a2020; background: #fde4e4; }
+.finder-explanation-group ul { margin: 16px 0 0; padding-left: 19px; color: #4b586a; font-size: .88rem; }
+.finder-explanation-group li + li { margin-top: 9px; }
+.finder-result-next-step { margin: 0 clamp(24px,4vw,36px); padding: 18px 20px; border-left: 4px solid var(--blue); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: #edf7fe; }
+.finder-result-next-step strong { color: var(--blue-dark); }
+.finder-result-next-step p { margin: 4px 0 0; color: #40546a; }
+.finder-result-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 28px clamp(24px,4vw,36px) 34px; }
+.finder-result-actions .button { min-height: 48px; }
+.finder-result-text-action { padding: 6px 0; border: 0; color: var(--blue-dark); background: transparent; font: inherit; font-size: .9rem; font-weight: 800; cursor: pointer; }
+.finder-result-text-action:hover { text-decoration: underline; text-underline-offset: 4px; }
+.finder-result-text-action:focus-visible { outline: 3px solid rgba(2,132,232,.24); outline-offset: 4px; border-radius: 3px; }
+.finder-results-empty, .finder-results-loading { min-height: 400px; display: grid; place-items: center; align-content: center; padding: 48px 24px; border: 1px solid var(--line); border-radius: var(--radius-xl); background: #fff; text-align: center; box-shadow: var(--shadow-md); }
+.finder-results-empty > span { width: 66px; height: 66px; display: grid; place-items: center; margin-bottom: 18px; border-radius: 50%; color: var(--blue-dark); background: #eaf6ff; font-size: 2rem; }
+.finder-results-empty h2, .finder-results-loading h2 { max-width: 600px; margin-bottom: 10px; font-size: clamp(1.7rem,3vw,2.35rem); }
+.finder-results-empty p, .finder-results-loading p { max-width: 590px; margin-bottom: 24px; color: var(--muted); }
+.finder-results-loading { max-width: 980px; margin-inline: auto; }
+.finder-results-spinner { width: 48px; height: 48px; margin-bottom: 20px; border: 4px solid #cde9fb; border-top-color: var(--blue); border-radius: 50%; animation: finder-results-spin .8s linear infinite; }
+@keyframes finder-results-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 880px) {
+  .finder-results-heading { grid-template-columns: 1fr; gap: 24px; }
+  .finder-results-heading dl { width: min(100%,300px); grid-template-columns: repeat(2,1fr); }
+  .finder-explanation-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .finder-results-heading dl { width: 100%; }
+  .finder-results-demo-notice { grid-template-columns: 1fr; }
+  .finder-recommendation-header { padding: 24px 20px; }
+  .finder-compatibility-summary { grid-template-columns: 1fr; }
+  .finder-compatibility-summary > div { justify-content: space-between; padding-inline: 20px; }
+  .finder-explanation-grid { padding: 20px; }
+  .finder-result-next-step { margin-inline: 20px; }
+  .finder-result-actions { display: grid; padding: 24px 20px 28px; }
+  .finder-result-actions .button { width: 100%; }
+  .finder-result-text-action { width: fit-content; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finder-results-spinner { animation: none; border-color: var(--blue); opacity: .65; }
+}
+
 /* Keep CMS navigation isolated from legacy admin page styles declared above. */
 .admin-sidebar .admin-navigation { display: grid; gap: 5px; padding: 0; overflow: visible; border: 0; background: transparent; }
 .admin-sidebar .admin-navigation a { min-width: 0; display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 9px; color: #aebbcf; font-size: .86rem; font-weight: 650; }
