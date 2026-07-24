@@ -1,4 +1,4 @@
-import type { University } from "../universities/types";
+import type { University } from "../universities";
 import type {
   CompatibilityCheckId,
   UniversityCompatibilityEvaluation,

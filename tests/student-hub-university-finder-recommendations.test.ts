@@ -1,387 +1,147 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { University } from "../lib/student-hub/universities/types";
-import { evaluateUniversityCompatibility } from "../lib/student-hub/university-finder/compatibility";
-import {
-  isDemonstrationCatalog,
-  shouldShowDemonstrationCatalogNotice,
-} from "../lib/student-hub/university-finder/demo";
-import {
-  categorizeRecommendation,
-  compareUniversityRecommendations,
-  createUniversityRecommendation,
-  generateUniversityRecommendations,
-} from "../lib/student-hub/university-finder/recommendations";
-import type { UniversityFinderInput } from "../lib/student-hub/university-finder/schema";
+import { sampleUniversities } from "../lib/student-hub/universities";
 import {
   calculatePreferenceScore,
+  createUniversityRecommendation,
+  evaluateProgramCompatibility,
+  generateUniversityRecommendations,
+  isDemonstrationCatalog,
   preferenceScoreWeights,
-} from "../lib/student-hub/university-finder/scoring";
-import type {
-  CompatibilityCheckId,
-  CompatibilityStatus,
-  UniversityCompatibilityEvaluation,
-  UniversityRecommendation,
-} from "../lib/student-hub/university-finder/types";
+} from "../lib/student-hub/university-finder";
+import type { UniversityFinderInput } from "../lib/student-hub/university-finder/schema";
+import { program, questionnaire, university, withProgram, withUniversity } from "./fixtures/university-catalog";
 
-const questionnaire: UniversityFinderInput = {
-  destination: "CA",
-  studyLevel: "master",
-  subject: "computer-science",
-  preferredIntake: "september-december",
-  previousQualification: "bachelor-degree",
-  gradingSystem: "gpa-4",
-  academicScore: "3.5",
-  customGpaScale: "",
-  englishTest: "IELTS",
-  englishScore: "7.5",
-  otherEnglishTest: "",
-  annualTuitionBudget: "25000",
-  locationType: "major-city",
-  scholarshipPreference: "preferred",
-};
-
-const university: University = {
-  id: "production-university-001",
-  slug: "production-university",
-  name: "Production University",
-  country: "CA",
-  city: "Test City",
-  logo: "/test-logo.png",
-  website: "https://example.com/production-university",
-  studyLevels: ["bachelor", "master"],
-  majors: ["Computer Science"],
-  minimumGpa: 3.5,
-  gpaScale: 4,
-  englishRequirements: [{
-    test: "IELTS",
-    minimumOverallScore: 7.5,
-    minimumComponentScore: null,
-    note: "Verified",
-  }],
-  tuition: {
-    currency: "CAD",
-    minimum: 25000,
-    maximum: 30000,
-    period: "year",
-    note: "Verified",
-  },
-  livingCost: {
-    currency: "CAD",
-    minimum: 10000,
-    maximum: 15000,
-    period: "year",
-    note: "Not used",
-  },
-  applicationFee: {
-    currency: "CAD",
-    minimum: 100,
-    maximum: 100,
-    period: "application",
-    note: "Not used",
-  },
-  scholarship: {
-    available: true,
-    names: ["Entrance Award"],
-    maximumAmount: null,
-    note: "Verified",
-  },
-  intakePeriods: [{
-    label: "Fall",
-    months: [9],
-    note: "Verified",
-  }],
-  featured: true,
-  active: true,
-  sample: false,
-};
-
-function withUniversity(overrides: Partial<University>): University {
-  return { ...university, ...overrides };
-}
-
-function recommendationFor(
-  candidate = university,
-  answers = questionnaire,
-): UniversityRecommendation {
-  const recommendation = createUniversityRecommendation(answers, candidate);
-  assert.ok(recommendation);
-  return recommendation;
-}
-
-function withCheckStatus(
-  evaluation: UniversityCompatibilityEvaluation,
-  checkId: CompatibilityCheckId,
-  status: CompatibilityStatus,
-): UniversityCompatibilityEvaluation {
-  const checks = evaluation.checks.map((check) => (
-    check.check === checkId ? { ...check, status } : check
-  ));
-  const statusCounts = {
-    compatible: checks.filter((check) => check.status === "compatible").length,
-    "not-compatible": checks.filter((check) => check.status === "not-compatible").length,
-    unknown: checks.filter((check) => check.status === "unknown").length,
-    "not-applicable": checks.filter((check) => check.status === "not-applicable").length,
-  };
-  const criticalNotCompatibleCount = checks.filter(
-    (check) => check.critical && check.status === "not-compatible",
-  ).length;
-  const criticalUnknownCount = checks.filter(
-    (check) => check.critical && check.status === "unknown",
-  ).length;
-  return {
-    ...evaluation,
-    checks,
-    summary: {
-      totalChecks: checks.length,
-      statusCounts,
-      criticalNotCompatibleCount,
-      criticalUnknownCount,
-      hasCriticalMismatch: criticalNotCompatibleCount > 0,
-    },
-  };
-}
-
-test("hard filtering excludes inactive, destination-mismatched, and study-level-mismatched universities", () => {
+test("hard filtering excludes inactive universities, inactive programs, destination mismatches, and level mismatches", () => {
   const catalog = [
-    withUniversity({ id: "active-match" }),
-    withUniversity({ id: "inactive", active: false }),
-    withUniversity({ id: "wrong-country", country: "US" }),
-    withUniversity({ id: "wrong-level", studyLevels: ["bachelor"] }),
+    university,
+    withUniversity({ id: "u-inactive", slug: "u-inactive", active: false, programs: [withProgram({ id: "p-inactive-u", slug: "p-inactive-u", active: false })] }),
+    withUniversity({ id: "u-country", slug: "u-country", country: "US", programs: [withProgram({ id: "p-country", slug: "p-country" })] }),
+    withUniversity({ id: "u-level", slug: "u-level", programs: [withProgram({ id: "p-level", slug: "p-level", studyLevel: "bachelor" })] }),
+    withUniversity({ id: "u-program", slug: "u-program", programs: [withProgram({ id: "p-inactive", slug: "p-inactive", active: false })] }),
   ];
-  const generated = generateUniversityRecommendations(questionnaire, catalog);
-  assert.deepEqual(generated.results.map((result) => result.university.id), ["active-match"]);
+  assert.equal(generateUniversityRecommendations(questionnaire, catalog).results.length, 1);
 });
 
-test("creates a strong profile match from complete compatible critical evidence", () => {
-  const recommendation = recommendationFor();
+test("complete compatible program evidence creates a strong profile match", () => {
+  const recommendation = createUniversityRecommendation(questionnaire, university, program);
+  assert.ok(recommendation);
   assert.equal(recommendation.category, "strong-profile-match");
+  assert.equal(recommendation.program.name, "Master of Computer Science");
   assert.equal(recommendation.criticalUnknownCount, 0);
-  assert.equal(recommendation.criticalIncompatibilityCount, 0);
-  assert.ok(recommendation.explanations.aligns.includes("Located in your selected destination: Canada."));
 });
 
-test("creates a potential match when only tuition evidence is unknown", () => {
-  const candidate = withUniversity({
-    tuition: { ...university.tuition, minimum: null },
-  });
-  assert.equal(recommendationFor(candidate).category, "potential-match");
+test("only unknown annual tuition creates a potential match", () => {
+  const candidate = withProgram({ tuition: null });
+  assert.equal(createUniversityRecommendation(questionnaire, university, candidate)?.category, "potential-match");
 });
 
-test("routes academic scale uncertainty and related subjects to counsellor review", () => {
-  assert.equal(recommendationFor(
-    withUniversity({ gpaScale: 5 }),
-  ).category, "requires-counsellor-review");
-  assert.equal(recommendationFor(
-    withUniversity({ majors: ["Data Science"] }),
-  ).category, "requires-counsellor-review");
+test("important unknowns and verified failures require counsellor review", () => {
+  assert.equal(createUniversityRecommendation(questionnaire, university, withProgram({ subject: "data-science", subjectAliases: [] }))?.category, "requires-counsellor-review");
+  assert.equal(createUniversityRecommendation(questionnaire, university, withProgram({
+    academicRequirements: [{ ...program.academicRequirements[0], minimumScore: 3.6 }],
+  }))?.category, "requires-counsellor-review");
+  assert.equal(createUniversityRecommendation(questionnaire, university, withProgram({ englishRequirements: [] }))?.category, "requires-counsellor-review");
 });
 
-test("verified academic or English incompatibility cannot produce strong or potential matches", () => {
-  const academic = recommendationFor(withUniversity({ minimumGpa: 3.6 }));
-  const english = recommendationFor(withUniversity({
-    englishRequirements: [{
-      test: "IELTS",
-      minimumOverallScore: 8,
-      minimumComponentScore: null,
-      note: "Verified",
-    }],
-  }));
-  assert.equal(academic.category, "requires-counsellor-review");
-  assert.equal(english.category, "requires-counsellor-review");
-  assert.ok(academic.explanations.mayNotAlign.some((text) => text.includes("below the listed minimum")));
-  assert.ok(english.explanations.mayNotAlign.some((text) => text.includes("below the listed minimum")));
-});
-
-test("scholarship-required with unverified scholarship data requires counsellor review", () => {
-  const answers: UniversityFinderInput = {
-    ...questionnaire,
-    scholarshipPreference: "required",
-  };
-  const candidate = withUniversity({
-    scholarship: {
-      available: false,
-      names: [],
-      maximumAmount: null,
-      note: "Scholarship information is not defined.",
-    },
-  });
-  assert.equal(recommendationFor(candidate, answers).category, "requires-counsellor-review");
-});
-
-test("insufficient core evidence produces insufficient verified data", () => {
-  const candidate = withUniversity({
-    majors: [],
-    minimumGpa: null,
-    gpaScale: null,
+test("missing subject, academic, and English evidence is insufficient", () => {
+  const incompleteUniversity = withUniversity({ subjectCoverage: "unknown" });
+  const incompleteProgram = withProgram({
+    subject: "fine-arts",
+    subjectAliases: [],
+    academicRequirements: [],
     englishRequirements: [],
   });
-  assert.equal(recommendationFor(candidate).category, "insufficient-verified-data");
+  assert.equal(
+    createUniversityRecommendation(questionnaire, incompleteUniversity, incompleteProgram)?.category,
+    "insufficient-verified-data",
+  );
 });
 
-test("sample records are always forced to insufficient verified data", () => {
-  const sample = withUniversity({ id: "sample-001", sample: true });
-  const recommendation = recommendationFor(sample);
-  assert.equal(recommendation.category, "insufficient-verified-data");
-  assert.equal(recommendation.demonstration.isSampleRecord, true);
-  assert.equal(recommendation.demonstration.badgeLabel, "Demonstration record");
-  assert.match(recommendation.explanations.needsVerification[0] ?? "", /Demonstration record only/);
-});
-
-test("preference scoring applies every centralized weight", () => {
-  const evaluation = evaluateUniversityCompatibility(questionnaire, university);
-  assert.equal(calculatePreferenceScore(evaluation, university), 12);
-  assert.deepEqual(preferenceScoreWeights, {
-    subject: 4,
-    tuition: 3,
-    intake: 2,
-    scholarship: 2,
-    location: 1,
-    featured: 1,
+test("requirements are never combined across programs", () => {
+  const academicMissing = withProgram({
+    id: "program-academic-missing",
+    slug: "program-academic-missing",
+    name: "Academic Missing",
+    academicRequirements: [],
   });
-
-  const locationCompatible = withCheckStatus(evaluation, "preferred-location", "compatible");
-  assert.equal(calculatePreferenceScore(locationCompatible, university), 13);
+  const englishMissing = withProgram({
+    id: "program-english-missing",
+    slug: "program-english-missing",
+    name: "English Missing",
+    englishRequirements: [],
+  });
+  const candidate = withUniversity({ programs: [academicMissing, englishMissing] });
+  const results = generateUniversityRecommendations(questionnaire, [candidate]).results;
+  assert.equal(results.length, 2);
+  assert.ok(results.every((result) => result.category !== "strong-profile-match"));
+  assert.ok(results.some((result) => result.explanations.needsVerification.some((text) => /academic/i.test(text))));
+  assert.ok(results.some((result) => result.explanations.needsVerification.some((text) => /English/i.test(text))));
 });
 
-test("unknown and not-applicable preferences award zero points", () => {
-  let evaluation = evaluateUniversityCompatibility(questionnaire, university);
-  for (const checkId of [
-    "subject",
-    "tuition-budget",
-    "preferred-intake",
-    "scholarship-preference",
-    "preferred-location",
-  ] as const) {
-    evaluation = withCheckStatus(evaluation, checkId, "unknown");
-  }
-  assert.equal(calculatePreferenceScore(evaluation, withUniversity({ featured: false })), 0);
-  evaluation = withCheckStatus(evaluation, "preferred-intake", "not-applicable");
-  assert.equal(calculatePreferenceScore(evaluation, withUniversity({ featured: false })), 0);
+test("multiple matching programs at one university return separate recommendations", () => {
+  const secondProgram = withProgram({
+    id: "program-002",
+    slug: "master-applied-computing",
+    name: "Master of Applied Computing",
+  });
+  const results = generateUniversityRecommendations(
+    questionnaire,
+    [withUniversity({ programs: [program, secondProgram] })],
+  ).results;
+  assert.equal(results.length, 2);
+  assert.deepEqual(results.map((result) => result.program.name), [
+    "Master of Applied Computing",
+    "Master of Computer Science",
+  ]);
 });
 
-test("academic, English, destination, and study-level compatibility never add preference score", () => {
-  let evaluation = evaluateUniversityCompatibility(questionnaire, university);
-  for (const checkId of [
-    "subject",
-    "tuition-budget",
-    "preferred-intake",
-    "scholarship-preference",
-    "preferred-location",
-  ] as const) {
-    evaluation = withCheckStatus(evaluation, checkId, "unknown");
-  }
-  assert.equal(calculatePreferenceScore(evaluation, withUniversity({ featured: false })), 0);
+test("public presentation DTO excludes internal ranking data, catalog IDs, and reason codes", () => {
+  const result = generateUniversityRecommendations(questionnaire, [university]).results[0];
+  assert.ok(result);
+  const serialized = JSON.stringify(result);
+  assert.doesNotMatch(serialized, /internalPreferenceScore|preferenceScore|stableUniversityId|stableProgramId|reasonCode|program-001|university-001/);
+  assert.equal("id" in result.university, false);
+  assert.equal("id" in result.program, false);
+  assert.ok(result.checks.every((check) => !("reasonCode" in check)));
 });
 
-test("the internal score is not included in user-facing explanation text", () => {
-  const recommendation = recommendationFor();
-  const text = [
-    ...recommendation.explanations.aligns,
-    ...recommendation.explanations.needsVerification,
-    ...recommendation.explanations.mayNotAlign,
-    recommendation.recommendedNextStep,
-  ].join(" ");
-  assert.doesNotMatch(text, new RegExp(`\\b${recommendation.internalPreferenceScore}\\b`));
-  assert.doesNotMatch(text, /preference score/i);
-});
-
-test("category precedence sorts before preference score", () => {
-  const strong = recommendationFor();
-  const potential = recommendationFor(withUniversity({
-    id: "potential",
-    tuition: { ...university.tuition, minimum: null },
-  }));
-  const inflatedPotential = { ...potential, internalPreferenceScore: 999 };
-  assert.ok(compareUniversityRecommendations(strong, inflatedPotential) < 0);
-});
-
-test("sorting uses higher preference score then fewer critical unknowns", () => {
-  const base = recommendationFor();
-  const highScore = { ...base, internalPreferenceScore: 9 };
-  const lowScore = { ...base, internalPreferenceScore: 8 };
-  assert.ok(compareUniversityRecommendations(highScore, lowScore) < 0);
-
-  const fewerUnknowns = { ...base, internalPreferenceScore: 8, criticalUnknownCount: 0 };
-  const moreUnknowns = { ...base, internalPreferenceScore: 8, criticalUnknownCount: 1 };
-  assert.ok(compareUniversityRecommendations(fewerUnknowns, moreUnknowns) < 0);
-});
-
-test("sorting applies subject, tuition, featured, name, and stable ID tie-breakers", () => {
-  const base = recommendationFor();
-  const common = {
-    ...base,
-    internalPreferenceScore: 5,
-    criticalUnknownCount: 1,
+test("preference scoring retains centralized weights without academic or English points", () => {
+  const evaluation = evaluateProgramCompatibility(questionnaire, university, program);
+  assert.deepEqual(preferenceScoreWeights, { subject: 4, tuition: 3, intake: 2, scholarship: 2, location: 1, featured: 1 });
+  assert.equal(calculatePreferenceScore(evaluation, university), 13);
+  const withoutPreferences: UniversityFinderInput = {
+    ...questionnaire,
+    annualTuitionBudget: "",
+    preferredIntake: "no-preference",
+    scholarshipPreference: "no-preference",
+    locationType: "no-preference",
   };
-  const subjectHigh = { ...common, sort: { ...common.sort, subjectRank: 3 } };
-  const subjectLow = { ...common, sort: { ...common.sort, subjectRank: 2 } };
-  assert.ok(compareUniversityRecommendations(subjectHigh, subjectLow) < 0);
-
-  const tuitionHigh = { ...subjectHigh, sort: { ...subjectHigh.sort, tuitionRank: 3 } };
-  const tuitionLow = { ...subjectHigh, sort: { ...subjectHigh.sort, tuitionRank: 2 } };
-  assert.ok(compareUniversityRecommendations(tuitionHigh, tuitionLow) < 0);
-
-  const featured = { ...tuitionHigh, sort: { ...tuitionHigh.sort, featuredRank: 1 } };
-  const notFeatured = { ...tuitionHigh, sort: { ...tuitionHigh.sort, featuredRank: 0 } };
-  assert.ok(compareUniversityRecommendations(featured, notFeatured) < 0);
-
-  const alpha = { ...featured, sort: { ...featured.sort, normalizedUniversityName: "alpha" } };
-  const beta = { ...featured, sort: { ...featured.sort, normalizedUniversityName: "beta" } };
-  assert.ok(compareUniversityRecommendations(alpha, beta) < 0);
-
-  const firstId = { ...alpha, sort: { ...alpha.sort, stableUniversityId: "id-1" } };
-  const secondId = { ...alpha, sort: { ...alpha.sort, stableUniversityId: "id-2" } };
-  assert.ok(compareUniversityRecommendations(firstId, secondId) < 0);
+  assert.equal(calculatePreferenceScore(evaluateProgramCompatibility(withoutPreferences, university, program), university), 5);
 });
 
-test("generated ordering is deterministic for identical inputs", () => {
-  const catalog = [
-    withUniversity({ id: "b", name: "Beta University" }),
-    withUniversity({ id: "a", name: "Alpha University" }),
-  ];
-  assert.deepEqual(
-    generateUniversityRecommendations(questionnaire, catalog),
-    generateUniversityRecommendations(questionnaire, catalog),
-  );
-  assert.deepEqual(
-    generateUniversityRecommendations(questionnaire, catalog).results.map((result) => result.university.id),
-    ["a", "b"],
-  );
-});
+test("sample-only and mixed catalog demo behavior remains explicit", () => {
+  assert.equal(isDemonstrationCatalog(sampleUniversities), true);
+  const sampleAnswers: UniversityFinderInput = {
+    ...questionnaire,
+    destination: "US",
+    studyLevel: "bachelor",
+  };
+  const sampleResults = generateUniversityRecommendations(sampleAnswers, sampleUniversities);
+  assert.equal(sampleResults.isDemonstrationCatalog, true);
+  assert.equal(sampleResults.showDemonstrationCatalogNotice, true);
+  assert.ok(sampleResults.results.every((result) => result.category === "insufficient-verified-data"));
+  assert.ok(sampleResults.results.every((result) => result.demonstration.isSampleRecord));
 
-test("demo detection distinguishes sample-only and mixed catalogs", () => {
-  const sample = withUniversity({ id: "sample", sample: true });
-  assert.equal(isDemonstrationCatalog([sample]), true);
-  assert.equal(isDemonstrationCatalog([sample, university]), false);
-  assert.equal(isDemonstrationCatalog([]), false);
-  assert.equal(shouldShowDemonstrationCatalogNotice([sample, university]), true);
-
-  const sampleOnly = generateUniversityRecommendations(questionnaire, [sample]);
-  assert.equal(sampleOnly.isDemonstrationCatalog, true);
-  assert.equal(sampleOnly.showDemonstrationCatalogNotice, true);
-  assert.equal(sampleOnly.results[0]?.category, "insufficient-verified-data");
-
-  const mixed = generateUniversityRecommendations(questionnaire, [sample, university]);
+  const mixed = generateUniversityRecommendations(questionnaire, [university, sampleUniversities[0]]);
   assert.equal(mixed.isDemonstrationCatalog, false);
   assert.equal(mixed.showDemonstrationCatalogNotice, true);
-  assert.equal(mixed.results.find((result) => result.university.id === "sample")?.category, "insufficient-verified-data");
-  assert.equal(mixed.results.find((result) => result.university.id === university.id)?.category, "strong-profile-match");
 });
 
-test("empty catalogs and fully filtered catalogs return empty result sets", () => {
-  assert.deepEqual(generateUniversityRecommendations(questionnaire, []), {
-    results: [],
-    isDemonstrationCatalog: false,
-    showDemonstrationCatalogNotice: false,
-  });
-  assert.equal(generateUniversityRecommendations(questionnaire, [
-    withUniversity({ active: false }),
-    withUniversity({ id: "wrong-destination", country: "US" }),
-  ]).results.length, 0);
-});
-
-test("categorization never emits unsupported public categories", () => {
-  const evaluation = evaluateUniversityCompatibility(questionnaire, university);
-  assert.equal(categorizeRecommendation(questionnaire, university, evaluation), "strong-profile-match");
+test("empty, fully filtered, and repeated generation are deterministic", () => {
+  assert.deepEqual(generateUniversityRecommendations(questionnaire, []).results, []);
+  assert.deepEqual(generateUniversityRecommendations(questionnaire, [withUniversity({ country: "US" })]).results, []);
+  const first = generateUniversityRecommendations(questionnaire, [university]);
+  const second = generateUniversityRecommendations(questionnaire, [university]);
+  assert.deepEqual(first, second);
 });

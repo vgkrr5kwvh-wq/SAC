@@ -1,5 +1,20 @@
 export { sampleUniversities } from "./data";
 export {
+  academicRequirementSchema,
+  englishRequirementSchema,
+  intakeSchema,
+  parseUniversityCatalog,
+  previousQualificationRequirementSchema,
+  programSchema,
+  safeParseUniversityCatalog,
+  scholarshipSchema,
+  tuitionSchema,
+  universityCatalogRecordSchema,
+  universityCatalogSchema,
+  validateUniversityCatalogInvariants,
+  verificationMetadataSchema,
+} from "./schema";
+export {
   getAllUniversities,
   getFeaturedUniversities,
   getUniversitiesByCountry,
@@ -7,12 +22,26 @@ export {
 } from "./queries";
 export type {
   CurrencyCode,
+  AcademicRequirement,
   EnglishTest,
+  EnglishTestType,
+  IntakeStatus,
+  LocationClassification,
+  PreviousQualificationRequirement,
+  ProgramEnglishRequirement,
+  ProgramIntake,
+  ProgramScholarship,
+  ProgramTuition,
+  QualificationCompatibilityState,
+  ScholarshipState,
+  SubjectCoverage,
+  TuitionPeriod,
   University,
-  UniversityCost,
   UniversityCountryCode,
-  UniversityEnglishRequirement,
-  UniversityIntake,
-  UniversityScholarship,
+  UniversityProgram,
   UniversityStudyLevel,
+  VerificationMetadata,
+  VerificationSourceType,
+  VerificationStatus,
 } from "./types";
+export type { CatalogInvariantIssue, UniversityCatalog, UniversityCatalogInput } from "./schema";

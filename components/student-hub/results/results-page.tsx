@@ -57,7 +57,7 @@ export default function ResultsPage({
       ) : (
         <ol className="finder-results-list" aria-label="University recommendations">
           {recommendations.results.map((recommendation) => (
-            <li key={recommendation.university.id}>
+            <li key={`${recommendation.university.name}-${recommendation.program.name}`}>
               <RecommendationCard
                 recommendation={recommendation}
                 studyLevel={studyLevel}

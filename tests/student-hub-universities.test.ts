@@ -10,7 +10,8 @@ import {
 test("returns the complete three-record sample university catalog", () => {
   const universities = getAllUniversities();
   assert.equal(universities.length, 3);
-  assert.ok(universities.every((university) => university.sample));
+  assert.ok(universities.every((university) => university.sampleRecord));
+  assert.ok(universities.every((university) => university.programs.length > 0));
   assert.equal(new Set(universities.map((university) => university.id)).size, 3);
   assert.equal(new Set(universities.map((university) => university.slug)).size, 3);
 });

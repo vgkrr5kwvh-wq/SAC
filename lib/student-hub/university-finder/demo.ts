@@ -1,4 +1,4 @@
-import type { University } from "../universities/types";
+import type { University } from "../universities";
 import type { RecommendationDemoMetadata } from "./types";
 
 export const demonstrationRecordExplanation =
@@ -7,19 +7,19 @@ export const demonstrationRecordExplanation =
 export function isDemonstrationCatalog(
   catalog: readonly University[],
 ): boolean {
-  return catalog.length > 0 && catalog.every((university) => university.sample);
+  return catalog.length > 0 && catalog.every((university) => university.sampleRecord);
 }
 
 export function shouldShowDemonstrationCatalogNotice(
   catalog: readonly University[],
 ): boolean {
-  return catalog.some((university) => university.sample);
+  return catalog.some((university) => university.sampleRecord);
 }
 
 export function buildRecommendationDemoMetadata(
   university: University,
 ): RecommendationDemoMetadata {
-  return university.sample
+  return university.sampleRecord
     ? {
         isSampleRecord: true,
         badgeLabel: "Demonstration record",

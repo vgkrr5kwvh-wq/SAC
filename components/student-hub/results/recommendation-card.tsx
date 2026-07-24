@@ -25,7 +25,7 @@ export default function RecommendationCard({
   studyLevel,
   onModifyAnswers,
 }: RecommendationCardProps) {
-  const { university, explanations, demonstration } = recommendation;
+  const { university, program, explanations, demonstration } = recommendation;
   const headingId = useId();
 
   return (
@@ -38,6 +38,7 @@ export default function RecommendationCard({
             {demonstration.badgeLabel ? <span className="finder-sample-badge">{demonstration.badgeLabel}</span> : null}
           </div>
           <h2 id={headingId}>{university.name}</h2>
+          <p className="finder-recommendation-program">{program.name}</p>
           <p>{countryLabels[university.country] ?? university.country} · {university.city} · {studyLevel}</p>
         </div>
       </header>

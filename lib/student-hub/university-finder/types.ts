@@ -44,6 +44,8 @@ export type CompatibilitySummary = {
 export type UniversityCompatibilityEvaluation = {
   universityId: string;
   universityName: string;
+  programId: string;
+  programName: string;
   checks: readonly CompatibilityCheckResult[];
   summary: CompatibilitySummary;
 };
@@ -61,8 +63,6 @@ export type RecommendationExplanations = {
 };
 
 export type RecommendationUniversityIdentity = {
-  id: string;
-  slug: string;
   name: string;
   country: string;
   city: string;
@@ -71,32 +71,34 @@ export type RecommendationUniversityIdentity = {
   featured: boolean;
 };
 
+export type RecommendationProgramIdentity = {
+  name: string;
+  studyLevel: string;
+};
+
 export type RecommendationDemoMetadata = {
   isSampleRecord: boolean;
   badgeLabel: string | null;
   explanation: string | null;
 };
 
-export type RecommendationSortMetadata = {
-  categoryRank: number;
-  subjectRank: number;
-  tuitionRank: number;
-  featuredRank: number;
-  normalizedUniversityName: string;
-  stableUniversityId: string;
+export type PublicCompatibilityCheckResult = {
+  check: CompatibilityCheckId;
+  status: CompatibilityStatus;
+  explanation: string;
+  critical: boolean;
 };
 
 export type UniversityRecommendation = {
   university: RecommendationUniversityIdentity;
+  program: RecommendationProgramIdentity;
   category: RecommendationCategory;
-  checks: readonly CompatibilityCheckResult[];
+  checks: readonly PublicCompatibilityCheckResult[];
   explanations: RecommendationExplanations;
   recommendedNextStep: string;
   criticalUnknownCount: number;
   criticalIncompatibilityCount: number;
-  internalPreferenceScore: number;
   demonstration: RecommendationDemoMetadata;
-  sort: RecommendationSortMetadata;
 };
 
 export type UniversityRecommendationCollection = {

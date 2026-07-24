@@ -1609,6 +1609,7 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
 .finder-recommendation-header { display: flex; justify-content: space-between; gap: 24px; padding: clamp(24px,4vw,36px); border-bottom: 1px solid var(--line); background: linear-gradient(135deg,#fff 50%,#edf8ff); }
 .finder-recommendation-header h2 { margin: 14px 0 7px; font-size: clamp(1.75rem,3vw,2.45rem); }
 .finder-recommendation-header p { margin: 0; color: var(--muted); font-weight: 650; }
+.finder-recommendation-header .finder-recommendation-program { margin-bottom: 3px; color: var(--ink); font-size: 1.04rem; font-weight: 800; }
 .finder-recommendation-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .finder-result-badge, .finder-featured-badge, .finder-sample-badge { display: inline-flex; align-items: center; min-height: 28px; padding: 5px 10px; border-radius: 999px; font-size: .7rem; font-weight: 800; letter-spacing: .035em; line-height: 1.2; text-transform: uppercase; }
 .finder-result-badge.is-strong-profile-match { color: #0b6238; background: #dcf7e8; }
