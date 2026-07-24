@@ -1,5 +1,6 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { deterministicDataHash } from "../hashing";
+import { safeErrorMessage, safeImportLog } from "../logging";
 import { matchStudiesOverseasSource } from "./match-sources";
 import {
   crawlOfficialPages,
@@ -13,9 +14,10 @@ import {
 } from "./official-site";
 import { extractStructuredOfficialClaims } from "./extractors/claims";
 import {
-  discoverOfficialProgramLinks,
+  discoverOfficialProgramLinksWithDiagnostics,
   extractOfficialProgram,
   limitProgramPages,
+  qualifyOfficialProgramPage,
 } from "./extractors/programs";
 import { defaultClaimConfidence, resolveSourceClaims } from "./source-resolution";
 import type {
@@ -102,7 +104,8 @@ export async function enrichUniversity(
     officialProgramDirectoryBudget,
     dependencies.delay,
   );
-  const programEntries = limitProgramPages(discoverOfficialProgramLinks(programDirectoryPages, verifiedOfficialDomain));
+  const programDiscovery = discoverOfficialProgramLinksWithDiagnostics(programDirectoryPages, verifiedOfficialDomain);
+  const programEntries = limitProgramPages(programDiscovery.entries);
   const programFetcher = dependencies.fetchProgramPage ?? officialFetcher;
   const programPages = await crawlOfficialPages(
     programEntries.map((entry) => ({ url: entry.url, label: entry.name, kind: "program" as const })),
@@ -110,8 +113,26 @@ export async function enrichUniversity(
     officialProgramPageBudget,
     dependencies.delay,
   );
+  const seenFinalProgramUrls = new Set<string>();
+  const programQualifications = programPages.map((page, index) => {
+    const entry = programEntries[index];
+    let finalKey: string;
+    try {
+      const final = new URL(page.finalUrl);
+      finalKey = `${final.hostname.replace(/^www\./, "")}${final.pathname.replace(/\/+$/, "") || "/"}`.toLowerCase();
+    } catch {
+      finalKey = page.finalUrl;
+    }
+    if (seenFinalProgramUrls.has(finalKey)) {
+      return { entry, qualification: { qualified: false, heading: null, reason: "Redirected final URL duplicates an earlier selected program page." } };
+    }
+    seenFinalProgramUrls.add(finalKey);
+    return { entry, qualification: qualifyOfficialProgramPage(page, entry) };
+  });
   const programs = programPages.flatMap((page, index) => {
-    const program = extractOfficialProgram(page, programEntries[index]);
+    const { entry, qualification } = programQualifications[index];
+    if (!qualification.qualified) return [];
+    const program = extractOfficialProgram(page, entry);
     return program ? [program] : [];
   });
   const officialClaims = officialPages.flatMap((page) =>
@@ -133,6 +154,12 @@ export async function enrichUniversity(
     "undergraduate.ieltsOverall", "graduate.ieltsOverall", "tuition.amount",
     "scholarship.scholarshipAvailable", "intake.deadline",
   ].filter((field) => !presentFields.has(field));
+  const allCheckedPages = [...officialPages, ...programDirectoryPages];
+  const claimsBySourceEntityField: Record<string, number> = {};
+  for (const claim of claims) {
+    const key = `${claim.sourceName}|${claim.entityType}|${claim.fieldName}`;
+    claimsBySourceEntityField[key] = (claimsBySourceEntityField[key] ?? 0) + 1;
+  }
   return {
     universityId: target.id,
     universityName: target.name,
@@ -145,6 +172,41 @@ export async function enrichUniversity(
     resolvedClaims,
     missingFields,
     verificationStatus,
+    diagnostics: {
+      pages: allCheckedPages.map((page) => ({
+        requestedUrl: page.url,
+        finalUrl: page.finalUrl,
+        status: page.status,
+        pageKind: page.kind,
+        accessIssue: page.accessIssue,
+      })),
+      programDirectories: programDiscovery.diagnostics,
+      selectedProgramPages: programEntries.map((entry) => ({
+        name: entry.name,
+        url: entry.url,
+        studyLevel: entry.studyLevel,
+        programType: entry.programType,
+      })),
+      attemptedProgramPages: programPages.map((page, index) => ({
+        name: programEntries[index].name,
+        studyLevel: programEntries[index].studyLevel,
+        requestedUrl: page.url,
+        finalUrl: page.finalUrl,
+        status: page.status,
+        accessIssue: page.accessIssue,
+        finalPageHeading: programQualifications[index].qualification.heading,
+        qualified: programQualifications[index].qualification.qualified,
+        qualificationReason: programQualifications[index].qualification.reason,
+      })),
+      claimsBySourceEntityField,
+      conflicts: resolvedClaims
+        .filter((group) => group.conflictStatus !== "NONE")
+        .map((group) => ({
+          fieldName: group.fieldName,
+          scope: group.scope,
+          reason: group.conflictReason,
+        })),
+    },
   };
 }
 
@@ -152,181 +214,272 @@ function json(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
+type PreparedEnrichmentPersistence = {
+  startedAt: Date;
+  mainRecordData: Omit<Prisma.ImportRecordUncheckedCreateInput, "importJobId">;
+  partnerRecordData: Omit<Prisma.ImportRecordUncheckedCreateInput, "importJobId"> | null;
+  partnerSourceData: {
+    profileUrl: string;
+    checkedAt: Date;
+    successfulAt: Date | null;
+    rawDataHash: string;
+  } | null;
+  programData: Array<{
+    key: string;
+    data: Omit<Prisma.ProgramUncheckedCreateInput, "universityId">;
+  }>;
+  directoryLinks: Array<{
+    type: string;
+    label: string;
+    url: string;
+    sourceName: string;
+    sourceUrl: string;
+  }>;
+  claimData: Array<{
+    claim: EnrichmentClaim;
+    valueJson: Prisma.InputJsonValue;
+    isPreferred: boolean;
+    conflictStatus: Prisma.UniversityFieldClaimUncheckedCreateInput["conflictStatus"];
+  }>;
+  conflictCount: number;
+};
+
+function prepareEnrichmentPersistence(result: EnrichmentResult): PreparedEnrichmentPersistence {
+  const startedAt = new Date();
+  const resolvedByKey = new Map(result.resolvedClaims.map((group) => [group.key, group]));
+  const claimData = result.claims.map((claim) => {
+    const group = resolvedByKey.get([
+      claim.entityType, claim.entityKey, claim.programKey ?? "", claim.fieldName,
+      claim.studyLevel ?? "", claim.entryRoute ?? "", claim.academicYear ?? "",
+    ].join("|"));
+    return {
+      claim,
+      valueJson: json(claim.value),
+      isPreferred: group?.preferred === claim
+        || Boolean(group?.preferred.sourceUrl === claim.sourceUrl
+          && group.preferred.normalizedValue === claim.normalizedValue),
+      conflictStatus: group?.conflictStatus ?? "NONE" as const,
+    };
+  });
+  return {
+    startedAt,
+    mainRecordData: {
+      universityId: result.universityId,
+      sourceUrl: result.officialPages[0]?.finalUrl ?? "",
+      entityType: "university-enrichment",
+      entityName: result.universityName,
+      status: result.studiesOverseas.status === "MANUAL_REVIEW" ? "MANUAL_REVIEW" : "STAGED",
+      rawPayload: json({
+        studiesOverseas: result.studiesOverseas.rawPayload,
+        officialPages: result.officialPages.map((page) => ({
+          url: page.url,
+          finalUrl: page.finalUrl,
+          label: page.label,
+          kind: page.kind,
+          status: page.status,
+          accessIssue: page.accessIssue,
+          checkedAt: page.checkedAt,
+        })),
+      }),
+      normalizedPayload: json(result),
+      normalizedDataHash: deterministicDataHash(result),
+      missingFields: json(result.missingFields),
+      validationErrors: [],
+      enrichmentMetadata: json({
+        verifiedFactualSource: "Official University Website",
+        discoveredThrough: "University Study",
+        secondaryComparison: "Studies Overseas",
+        officialPagesChecked: result.officialPages.map((page) => ({
+          url: page.finalUrl,
+          checkedAt: page.checkedAt,
+          status: page.status,
+          accessIssue: page.accessIssue,
+        })),
+        programDirectoryPages: result.programDirectoryPages.map((page) => page.finalUrl),
+      }),
+    },
+    partnerRecordData: result.studiesOverseas.profileUrl ? {
+      universityId: result.universityId,
+      sourceUrl: result.studiesOverseas.profileUrl,
+      entityType: "source-snapshot",
+      entityName: result.universityName,
+      status: "STAGED",
+      rawPayload: json(result.studiesOverseas.rawPayload),
+      normalizedPayload: json(result.studiesOverseas.normalizedPayload),
+    } : null,
+    partnerSourceData: result.studiesOverseas.profileUrl ? {
+      profileUrl: result.studiesOverseas.profileUrl,
+      checkedAt: startedAt,
+      successfulAt: result.studiesOverseas.status === "MATCHED" ? startedAt : null,
+      rawDataHash: deterministicDataHash(result.studiesOverseas.normalizedPayload),
+    } : null,
+    programData: result.programs.map((program) => ({
+      key: program.key,
+      data: {
+        name: program.name,
+        slug: program.slug,
+        degreeLevel: program.degreeLevel,
+        studyLevel: program.studyLevel,
+        award: program.award,
+        programType: program.programType,
+        department: program.department,
+        deliveryMode: program.deliveryMode,
+        campus: program.campus,
+        durationText: program.durationText,
+        creditsText: program.creditsText,
+        isStem: program.isStem,
+        active: program.active,
+        programUrl: program.officialProgramUrl,
+        sourceName: "official-university",
+        sourceUrl: program.officialProgramUrl,
+        publicationStatus: "DRAFT",
+        verificationStatus: "DISCOVERED",
+      },
+    })),
+    directoryLinks: result.programDirectoryPages.map((page) => ({
+      type: page.kind,
+      label: page.label,
+      url: page.finalUrl,
+      sourceName: "official-university",
+      sourceUrl: page.finalUrl,
+    })),
+    claimData,
+    conflictCount: claimData.filter((item) => item.conflictStatus !== "NONE").length,
+  };
+}
+
 export async function persistEnrichment(
   database: PrismaClient,
   result: EnrichmentResult,
 ): Promise<{ importJobId: string; importRecordId: string }> {
-  return database.$transaction(async (transaction) => {
-    const job = await transaction.importJob.create({
-      data: {
-        sourceName: "university-enrichment",
-        status: "COMPLETED",
-        mode: "ENRICHMENT",
-        startedAt: new Date(),
-        completedAt: new Date(),
-        discoveredCount: 1,
-        importedCount: 1,
-      },
-    });
-    const mainRecord = await transaction.importRecord.create({
-      data: {
-        importJobId: job.id,
-        universityId: result.universityId,
-        sourceUrl: result.officialPages[0]?.finalUrl ?? "",
-        entityType: "university-enrichment",
-        entityName: result.universityName,
-        status: result.studiesOverseas.status === "MANUAL_REVIEW" ? "MANUAL_REVIEW" : "STAGED",
-        rawPayload: json({
-          studiesOverseas: result.studiesOverseas.rawPayload,
-          officialPages: result.officialPages.map((page) => ({
-            url: page.url,
-            finalUrl: page.finalUrl,
-            label: page.label,
-            kind: page.kind,
-            status: page.status,
-            accessIssue: page.accessIssue,
-            checkedAt: page.checkedAt,
-          })),
-        }),
-        normalizedPayload: json(result),
-        normalizedDataHash: deterministicDataHash(result),
-        missingFields: json(result.missingFields),
-        validationErrors: [],
-        enrichmentMetadata: json({
-          verifiedFactualSource: "Official University Website",
-          discoveredThrough: "University Study",
-          secondaryComparison: "Studies Overseas",
-          officialPagesChecked: result.officialPages.map((page) => ({ url: page.finalUrl, checkedAt: page.checkedAt, status: page.status, accessIssue: page.accessIssue })),
-          programDirectoryPages: result.programDirectoryPages.map((page) => page.finalUrl),
-        }),
-      },
-    });
-    if (result.studiesOverseas.profileUrl) {
-      await transaction.universitySource.upsert({
-        where: { universityId_sourceName: { universityId: result.universityId, sourceName: "studies-overseas" } },
-        update: {
-          sourceUniversityUrl: result.studiesOverseas.profileUrl,
-          lastCheckedAt: new Date(),
-          lastSuccessfulSyncAt: result.studiesOverseas.status === "MATCHED" ? new Date() : undefined,
-        },
-        create: {
-          universityId: result.universityId,
-          sourceName: "studies-overseas",
-          sourceUniversityUrl: result.studiesOverseas.profileUrl,
-          lastCheckedAt: new Date(),
-          lastSuccessfulSyncAt: result.studiesOverseas.status === "MATCHED" ? new Date() : null,
-          rawDataHash: deterministicDataHash(result.studiesOverseas.normalizedPayload),
-          isPrimary: false,
+  const prepared = prepareEnrichmentPersistence(result);
+  safeImportLog("university-enrichment-transaction-started", {
+    universityId: result.universityId,
+    programWrites: prepared.programData.length,
+    claimWrites: prepared.claimData.length,
+    conflictWrites: prepared.conflictCount,
+  });
+  try {
+    const persisted = await database.$transaction(async (transaction) => {
+      const job = await transaction.importJob.create({
+        data: {
+          sourceName: "university-enrichment",
+          status: "COMPLETED",
+          mode: "ENRICHMENT",
+          startedAt: prepared.startedAt,
+          completedAt: prepared.startedAt,
+          discoveredCount: 1,
+          importedCount: 1,
         },
       });
-      await transaction.importRecord.create({
+      const mainRecord = await transaction.importRecord.create({
         data: {
+          ...prepared.mainRecordData,
           importJobId: job.id,
-          universityId: result.universityId,
-          sourceUrl: result.studiesOverseas.profileUrl,
-          entityType: "source-snapshot",
-          entityName: result.universityName,
-          status: "STAGED",
-          rawPayload: json(result.studiesOverseas.rawPayload),
-          normalizedPayload: json(result.studiesOverseas.normalizedPayload),
         },
       });
-    }
-    const programIds = new Map<string, string>();
-    for (const program of result.programs) {
-      const stored = await transaction.program.upsert({
-        where: { universityId_slug: { universityId: result.universityId, slug: program.slug } },
-        update: {
-          name: program.name,
-          degreeLevel: program.degreeLevel,
-          studyLevel: program.studyLevel,
-          award: program.award,
-          programType: program.programType,
-          department: program.department,
-          deliveryMode: program.deliveryMode,
-          campus: program.campus,
-          durationText: program.durationText,
-          creditsText: program.creditsText,
-          isStem: program.isStem,
-          active: program.active,
-          programUrl: program.officialProgramUrl,
-          sourceName: "official-university",
-          sourceUrl: program.officialProgramUrl,
-          publicationStatus: "DRAFT",
-          verificationStatus: "DISCOVERED",
-        },
-        create: {
-          universityId: result.universityId,
-          name: program.name,
-          slug: program.slug,
-          degreeLevel: program.degreeLevel,
-          studyLevel: program.studyLevel,
-          award: program.award,
-          programType: program.programType,
-          department: program.department,
-          deliveryMode: program.deliveryMode,
-          campus: program.campus,
-          durationText: program.durationText,
-          creditsText: program.creditsText,
-          isStem: program.isStem,
-          active: program.active,
-          programUrl: program.officialProgramUrl,
-          sourceName: "official-university",
-          sourceUrl: program.officialProgramUrl,
-          publicationStatus: "DRAFT",
-          verificationStatus: "DISCOVERED",
-        },
-      });
-      programIds.set(program.key, stored.id);
-    }
-    for (const page of result.programDirectoryPages) {
-      const existing = await transaction.universityLink.findFirst({
-        where: { universityId: result.universityId, type: page.kind, url: page.finalUrl },
-      });
-      if (!existing) await transaction.universityLink.create({
-        data: {
-          universityId: result.universityId,
-          type: page.kind,
-          label: page.label,
-          url: page.finalUrl,
-          sourceName: "official-university",
-          sourceUrl: page.finalUrl,
-        },
-      });
-    }
-    const resolvedByKey = new Map(result.resolvedClaims.map((group) => [group.key, group]));
-    for (const claim of result.claims) {
-      const group = resolvedByKey.get([
-        claim.entityType, claim.entityKey, claim.programKey ?? "", claim.fieldName,
-        claim.studyLevel ?? "", claim.entryRoute ?? "", claim.academicYear ?? "",
-      ].join("|"));
-      await transaction.universityFieldClaim.create({
-        data: {
-          universityId: result.universityId,
-          importRecordId: mainRecord.id,
-          programId: claim.programKey ? programIds.get(claim.programKey) ?? null : null,
-          entityType: claim.entityType,
-          entityId: null,
-          fieldName: claim.fieldName,
-          valueJson: json(claim.value),
-          normalizedValue: claim.normalizedValue,
-          sourceName: claim.sourceName,
-          sourceUrl: claim.sourceUrl,
-          authorityLevel: claim.authorityLevel,
-          confidence: claim.confidence,
-          observedAt: claim.observedAt,
-          rawEvidenceText: claim.rawEvidenceText,
-          isPreferred: group?.preferred === claim || group?.preferred.sourceUrl === claim.sourceUrl && group.preferred.normalizedValue === claim.normalizedValue,
-          conflictStatus: group?.conflictStatus ?? "NONE",
-          scopeLabel: claim.scopeLabel,
-          studyLevel: claim.studyLevel,
-          entryRoute: claim.entryRoute,
-          academicYear: claim.academicYear,
-        },
-      });
-    }
-    return { importJobId: job.id, importRecordId: mainRecord.id };
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      if (prepared.partnerSourceData && prepared.partnerRecordData) {
+        await transaction.universitySource.upsert({
+          where: { universityId_sourceName: { universityId: result.universityId, sourceName: "studies-overseas" } },
+          update: {
+            sourceUniversityUrl: prepared.partnerSourceData.profileUrl,
+            lastCheckedAt: prepared.partnerSourceData.checkedAt,
+            lastSuccessfulSyncAt: prepared.partnerSourceData.successfulAt ?? undefined,
+          },
+          create: {
+            universityId: result.universityId,
+            sourceName: "studies-overseas",
+            sourceUniversityUrl: prepared.partnerSourceData.profileUrl,
+            lastCheckedAt: prepared.partnerSourceData.checkedAt,
+            lastSuccessfulSyncAt: prepared.partnerSourceData.successfulAt,
+            rawDataHash: prepared.partnerSourceData.rawDataHash,
+            isPrimary: false,
+          },
+        });
+        await transaction.importRecord.create({
+          data: {
+            ...prepared.partnerRecordData,
+            importJobId: job.id,
+          },
+        });
+      }
+      const programIds = new Map<string, string>();
+      for (const program of prepared.programData) {
+        const stored = await transaction.program.upsert({
+          where: { universityId_slug: { universityId: result.universityId, slug: program.data.slug } },
+          update: {
+            ...program.data,
+            slug: undefined,
+          },
+          create: {
+            ...program.data,
+            universityId: result.universityId,
+          },
+        });
+        programIds.set(program.key, stored.id);
+      }
+      for (const link of prepared.directoryLinks) {
+        const existing = await transaction.universityLink.findFirst({
+          where: { universityId: result.universityId, type: link.type, url: link.url },
+        });
+        if (!existing) await transaction.universityLink.create({
+          data: {
+            universityId: result.universityId,
+            ...link,
+          },
+        });
+      }
+      if (prepared.claimData.length) {
+        await transaction.universityFieldClaim.createMany({
+          data: prepared.claimData.map(({ claim, valueJson, isPreferred, conflictStatus }) => ({
+            universityId: result.universityId,
+            importRecordId: mainRecord.id,
+            programId: claim.programKey ? programIds.get(claim.programKey) ?? null : null,
+            entityType: claim.entityType,
+            entityId: null,
+            fieldName: claim.fieldName,
+            valueJson,
+            normalizedValue: claim.normalizedValue,
+            sourceName: claim.sourceName,
+            sourceUrl: claim.sourceUrl,
+            authorityLevel: claim.authorityLevel,
+            confidence: claim.confidence,
+            observedAt: claim.observedAt,
+            rawEvidenceText: claim.rawEvidenceText,
+            isPreferred,
+            conflictStatus,
+            scopeLabel: claim.scopeLabel,
+            studyLevel: claim.studyLevel,
+            entryRoute: claim.entryRoute,
+            academicYear: claim.academicYear,
+          })),
+        });
+      }
+      return { importJobId: job.id, importRecordId: mainRecord.id };
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 10_000,
+      timeout: 30_000,
+    });
+    safeImportLog("university-enrichment-transaction-committed", {
+      universityId: result.universityId,
+      importJobId: persisted.importJobId,
+      importRecordId: persisted.importRecordId,
+      programWrites: prepared.programData.length,
+      claimWrites: prepared.claimData.length,
+      conflictWrites: prepared.conflictCount,
+    });
+    return persisted;
+  } catch (error) {
+    safeImportLog("university-enrichment-transaction-rolled-back", {
+      universityId: result.universityId,
+      programWrites: prepared.programData.length,
+      claimWrites: prepared.claimData.length,
+      conflictWrites: prepared.conflictCount,
+      error: safeErrorMessage(error),
+    });
+    throw error;
+  }
 }
 
 export async function executeEnrichment(

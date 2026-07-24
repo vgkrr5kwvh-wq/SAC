@@ -7,6 +7,7 @@ export const enrichmentCliSchema = z.object({
   country: z.string().trim().min(2).max(80).default("USA"),
   dryRun: z.boolean().default(false),
   fixtureDirectory: z.string().trim().min(1).optional(),
+  debugHtml: z.boolean().default(false),
 }).refine((value) => Boolean(value.universityId || value.source), {
   message: "Provide --university-id or --source university-study.",
 });
@@ -23,6 +24,7 @@ export function parseEnrichmentCliOptions(args: readonly string[]): EnrichmentCl
     else if (argument === "--limit") input.limit = Number(args[++index]);
     else if (argument === "--country") input.country = args[++index];
     else if (argument === "--fixture-directory") input.fixtureDirectory = args[++index];
+    else if (argument === "--debug-html") input.debugHtml = true;
     else throw new Error(`Unknown argument: ${argument}`);
   }
   return enrichmentCliSchema.parse(input);
@@ -36,4 +38,3 @@ export function assertEnrichmentEnabled(
     throw new Error("University enrichment is disabled. Set UNIVERSITY_IMPORT_ENABLED=true explicitly.");
   }
 }
-

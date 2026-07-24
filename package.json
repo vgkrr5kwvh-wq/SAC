@@ -12,6 +12,7 @@
     "admin:create": "node --env-file-if-exists=.env --import tsx scripts/create-admin.ts",
     "universities:pilot": "node --env-file-if-exists=.env --import tsx scripts/universities-pilot.ts",
     "universities:enrich": "node --env-file-if-exists=.env --import tsx scripts/universities-enrich.ts",
+    "universities:enrich:audit": "node --env-file-if-exists=.env --import tsx scripts/universities-enrichment-audit.ts",
     "test:universities": "node --import tsx --test tests/university-import-*.test.ts tests/university-enrichment-*.test.ts",
     "typecheck": "prisma generate && tsc --noEmit",
     "test:unit": "node --import tsx --test tests/*.test.ts",

@@ -114,6 +114,64 @@ export type EnrichmentResult = {
   resolvedClaims: ResolvedClaimGroup[];
   missingFields: string[];
   verificationStatus: VerificationStatus;
+  diagnostics: EnrichmentDiagnostics;
+};
+
+export type ProgramDirectoryDiagnostics = {
+  requestedUrl: string;
+  finalUrl: string;
+  pageKind: OfficialPageKind;
+  status: number;
+  accessIssue: string | null;
+  candidateLinksBeforeFiltering: number;
+  acceptedLinksAfterFiltering: number;
+  acceptedByStudyLevel: Record<string, number>;
+  acceptedCandidates: Array<{
+    name: string;
+    url: string;
+    studyLevel: string;
+    programType: string;
+  }>;
+  rejectedCandidates: Array<{
+    name: string;
+    url: string;
+    reason: string;
+  }>;
+  rejectionCounts: Record<string, number>;
+};
+
+export type EnrichmentDiagnostics = {
+  pages: Array<{
+    requestedUrl: string;
+    finalUrl: string;
+    status: number;
+    pageKind: OfficialPageKind;
+    accessIssue: string | null;
+  }>;
+  programDirectories: ProgramDirectoryDiagnostics[];
+  selectedProgramPages: Array<{
+    name: string;
+    url: string;
+    studyLevel: string;
+    programType: string;
+  }>;
+  attemptedProgramPages: Array<{
+    name: string;
+    studyLevel: string;
+    requestedUrl: string;
+    finalUrl: string;
+    status: number;
+    accessIssue: string | null;
+    finalPageHeading: string | null;
+    qualified: boolean;
+    qualificationReason: string;
+  }>;
+  claimsBySourceEntityField: Record<string, number>;
+  conflicts: Array<{
+    fieldName: string;
+    scope: string;
+    reason: string | null;
+  }>;
 };
 
 export type EnrichmentTarget = {
@@ -128,4 +186,3 @@ export type EnrichmentTarget = {
   aliases: string[];
   universityStudyUrl: string | null;
 };
-

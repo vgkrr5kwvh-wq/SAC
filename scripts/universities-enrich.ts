@@ -13,6 +13,7 @@ import {
 } from "../src/lib/university-import/enrichment/validation";
 import { safeErrorMessage, safeImportLog } from "../src/lib/university-import/logging";
 import { studiesOverseasUsaCatalogUrl } from "../src/lib/university-import/enrichment/match-sources";
+import { writeDebugSnapshots } from "../src/lib/university-import/enrichment/debug";
 
 async function fixtureDependencies(directory: string): Promise<EnrichmentDependencies> {
   const root = resolve(directory);
@@ -95,6 +96,18 @@ async function main() {
     ? await fixtureDependencies(options.fixtureDirectory)
     : await liveDependencies();
   const result = await executeEnrichment({ dryRun: options.dryRun }, enrichmentTarget, dependencies, prisma);
+  if (options.debugHtml) {
+    const directory = await writeDebugSnapshots(
+      [...result.officialPages, ...result.programDirectoryPages],
+      enrichmentTarget.slug,
+    );
+    safeImportLog("university-enrichment-debug-html", { directory });
+  }
+  if (options.dryRun) {
+    safeImportLog("university-enrichment-diagnostics", {
+      diagnostics: JSON.stringify(result.diagnostics),
+    });
+  }
   safeImportLog("university-enrichment-complete", {
     universityId: result.universityId,
     university: result.universityName,

@@ -75,7 +75,7 @@ test("runs bounded official enrichment with pathway and direct claims separated"
   const result = await enrichUniversity(target, await dependencies());
   assert.equal(result.officialPages.length, 8);
   assert.equal(result.programDirectoryPages.length, 2);
-  assert.equal(result.programs.length, 10);
+  assert.equal(result.programs.length, 8);
   assert.equal(result.verificationStatus, "OFFICIAL_VERIFIED");
   const direct = result.claims.find((claim) => claim.fieldName === "ieltsOverall" && claim.entryRoute === "direct" && claim.studyLevel === "undergraduate");
   const pathway = result.claims.find((claim) => claim.fieldName === "ieltsOverall" && claim.entryRoute === "pathway");
@@ -88,7 +88,30 @@ test("dry-run executes with zero database writes", async () => {
   let databaseAccesses = 0;
   const database = new Proxy({}, { get() { databaseAccesses += 1; return undefined; } });
   const result = await executeEnrichment({ dryRun: true }, target, await dependencies(), database as never);
-  assert.equal(result.programs.length, 10);
+  assert.equal(result.programs.length, 8);
   assert.equal(databaseAccesses, 0);
+  assert.equal(result.diagnostics.pages.length, 10);
+  assert.equal(result.diagnostics.programDirectories.length, 2);
+  assert.equal(result.diagnostics.selectedProgramPages.length, 8);
+  assert.equal(result.diagnostics.attemptedProgramPages.length, 8);
+  assert.equal(Object.keys(result.diagnostics.claimsBySourceEntityField).length > 0, true);
 });
 
+test("merges redirected duplicate program destinations", async () => {
+  const base = await dependencies();
+  const originalFetcher = base.fetchProgramPage;
+  let request = 0;
+  base.fetchProgramPage = async (candidate) => {
+    const page = await originalFetcher!(candidate);
+    request += 1;
+    return request === 2
+      ? { ...page, finalUrl: "https://auburn.edu/programs/accounting/" }
+      : page;
+  };
+  const result = await enrichUniversity(target, base);
+  const duplicate = result.diagnostics.attemptedProgramPages.find((page) =>
+    page.qualificationReason.includes("duplicates an earlier selected program page")
+  );
+  assert.equal(duplicate?.qualified, false);
+  assert.equal(result.programs.length, 7);
+});
