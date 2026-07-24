@@ -5,19 +5,21 @@ import { adminUserUpdateError, hasAdminPermission, isCurrentAdminSession } from 
 import { createAdminUserSchema, resetAdminPasswordSchema, updateAdminUserSchema } from "../lib/admin-user-management";
 
 test("enforces the role permission matrix", () => {
-  for (const permission of ["manage_enquiries", "manage_blog", "publish_blog", "manage_categories", "manage_media", "delete_media", "manage_users", "manage_settings"] as const) assert.equal(hasAdminPermission("SUPER_ADMIN", permission), true);
+  for (const permission of ["manage_enquiries", "manage_blog", "publish_blog", "manage_categories", "manage_media", "delete_media", "manage_users", "manage_settings", "manage_university_data"] as const) assert.equal(hasAdminPermission("SUPER_ADMIN", permission), true);
   assert.equal(hasAdminPermission("EDITOR", "manage_blog"), true);
   assert.equal(hasAdminPermission("EDITOR", "publish_blog"), true);
   assert.equal(hasAdminPermission("EDITOR", "manage_categories"), true);
   assert.equal(hasAdminPermission("EDITOR", "delete_media"), true);
   assert.equal(hasAdminPermission("EDITOR", "manage_users"), false);
   assert.equal(hasAdminPermission("EDITOR", "manage_enquiries"), false);
+  assert.equal(hasAdminPermission("EDITOR", "manage_university_data"), false);
   assert.equal(hasAdminPermission("STAFF", "manage_enquiries"), true);
   assert.equal(hasAdminPermission("STAFF", "manage_blog"), false);
   assert.equal(hasAdminPermission("STAFF", "publish_blog"), false);
   assert.equal(hasAdminPermission("STAFF", "manage_categories"), false);
   assert.equal(hasAdminPermission("STAFF", "delete_media"), false);
   assert.equal(hasAdminPermission("STAFF", "manage_users"), false);
+  assert.equal(hasAdminPermission("STAFF", "manage_university_data"), false);
 });
 
 test("prevents self escalation, self deactivation, and loss of the last active Super Admin", () => {
@@ -46,9 +48,13 @@ test("invalidates inactive and version-mismatched JWT sessions", () => {
 });
 
 test("protects direct URLs and Server Actions with server-side permissions", () => {
-  for (const file of ["app/admin/blog/layout.tsx", "app/admin/media/layout.tsx", "app/admin/enquiries/layout.tsx", "app/admin/partner-enquiries/layout.tsx", "app/admin/users/layout.tsx"]) {
-    assert.match(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), /requireAdmin\("(manage_blog|manage_media|manage_enquiries|manage_users)"/);
+  for (const file of ["app/admin/blog/layout.tsx", "app/admin/media/layout.tsx", "app/admin/enquiries/layout.tsx", "app/admin/partner-enquiries/layout.tsx", "app/admin/users/layout.tsx", "app/admin/university-data/layout.tsx"]) {
+    assert.match(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), /requireAdmin\("(manage_blog|manage_media|manage_enquiries|manage_users|manage_university_data)"/);
   }
+  const universityActions = readFileSync(new URL("../app/admin/university-data/actions.ts", import.meta.url), "utf8");
+  assert.match(universityActions, /hasAdminPermission\(session\.user\.role, "manage_university_data"\)/);
+  assert.match(universityActions, /reviewedById: session\.user\.id/);
+  assert.match(universityActions, /reviewedAt: new Date\(\)/);
   for (const file of ["app/admin/blog/actions.ts", "app/admin/blog/categories/actions.ts", "app/admin/media/actions.ts", "app/admin/users/actions.ts"]) {
     assert.match(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), /hasAdminPermission|superAdminSession/);
   }

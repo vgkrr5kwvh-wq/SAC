@@ -10,10 +10,11 @@ export type AdminPermission =
   | "delete_media"
   | "manage_users"
   | "manage_settings"
+  | "manage_university_data"
   | "manage_profile";
 
 const permissions: Record<AdminRole, ReadonlySet<AdminPermission>> = {
-  SUPER_ADMIN: new Set(["view_dashboard", "manage_enquiries", "manage_blog", "publish_blog", "manage_categories", "manage_media", "delete_media", "manage_users", "manage_settings", "manage_profile"]),
+  SUPER_ADMIN: new Set(["view_dashboard", "manage_enquiries", "manage_blog", "publish_blog", "manage_categories", "manage_media", "delete_media", "manage_users", "manage_settings", "manage_university_data", "manage_profile"]),
   EDITOR: new Set(["view_dashboard", "manage_blog", "publish_blog", "manage_categories", "manage_media", "delete_media", "manage_profile"]),
   STAFF: new Set(["view_dashboard", "manage_enquiries", "manage_profile"]),
 };

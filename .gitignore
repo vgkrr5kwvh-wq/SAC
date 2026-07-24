@@ -42,3 +42,9 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+
+# university importer local state and output
+*storage-state*.json
+playwright/.auth/
+/university-import-output/
+/scraped-output/

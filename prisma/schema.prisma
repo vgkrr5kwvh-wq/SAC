@@ -54,6 +54,7 @@ model AdminUser {
   mediaAssets  MediaAsset[]
   createdPosts BlogPost[]   @relation("BlogPostCreatedBy")
   updatedPosts BlogPost[]   @relation("BlogPostUpdatedBy")
+  reviewedImportRecords ImportRecord[] @relation("ImportRecordReviewedBy")
 }
 
 model BlogPost {
@@ -124,6 +125,371 @@ model MediaAsset {
   @@index([uploadedById])
 }
 
+model University {
+  id                 String                      @id @default(cuid()) @db.VarChar(30)
+  name               String                      @db.VarChar(255)
+  slug               String                      @unique @db.VarChar(255)
+  country            String?                     @db.VarChar(120)
+  state              String?                     @db.VarChar(120)
+  city               String?                     @db.VarChar(120)
+  address            String?                     @db.VarChar(500)
+  institutionType    String?                     @db.VarChar(120)
+  foundedYear        Int?
+  description        String?                     @db.LongText
+  officialWebsiteUrl String?                     @db.VarChar(2048)
+  logoUrl            String?                     @db.VarChar(2048)
+  bannerImageUrl     String?                     @db.VarChar(2048)
+  publicationStatus  UniversityPublicationStatus @default(DRAFT)
+  verificationStatus VerificationStatus           @default(DISCOVERED)
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  sources            UniversitySource[]
+  programs           Program[]
+  admissionRequirements AdmissionRequirement[]
+  tuitionRecords     Tuition[]
+  scholarships       Scholarship[]
+  intakes            Intake[]
+  links              UniversityLink[]
+  aliases            UniversityAlias[]
+  fieldClaims        UniversityFieldClaim[]
+  importRecords      ImportRecord[]
+
+  @@index([name, city, state])
+  @@index([country, state, city])
+  @@index([publicationStatus])
+  @@index([verificationStatus])
+  @@index([officialWebsiteUrl(191)])
+}
+
+model UniversitySource {
+  id                   String     @id @default(cuid()) @db.VarChar(30)
+  universityId         String     @db.VarChar(30)
+  sourceName           String     @db.VarChar(80)
+  sourceUniversityUrl  String     @db.VarChar(2048)
+  sourceExternalId     String?    @db.VarChar(255)
+  lastCheckedAt        DateTime?
+  lastSuccessfulSyncAt DateTime?
+  rawDataHash          String?    @db.Char(64)
+  isPrimary            Boolean    @default(false)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  university           University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([universityId, sourceName])
+  @@index([sourceName, sourceUniversityUrl(length: 500)])
+  @@index([universityId, isPrimary])
+  @@index([sourceName, sourceExternalId])
+  @@index([rawDataHash])
+}
+
+model Program {
+  id                String                      @id @default(cuid()) @db.VarChar(30)
+  universityId      String                      @db.VarChar(30)
+  name              String                      @db.VarChar(255)
+  slug              String                      @db.VarChar(255)
+  degreeLevel       String?                     @db.VarChar(120)
+  studyLevel        String?                     @db.VarChar(120)
+  award             String?                     @db.VarChar(160)
+  programType       String?                     @db.VarChar(120)
+  department        String?                     @db.VarChar(255)
+  subjectArea       String?                     @db.VarChar(160)
+  deliveryMode      String?                     @db.VarChar(120)
+  campus            String?                     @db.VarChar(160)
+  durationText      String?                     @db.VarChar(255)
+  creditsText       String?                     @db.VarChar(255)
+  isStem            Boolean?
+  active            Boolean                     @default(true)
+  lastVerifiedAt    DateTime?
+  programUrl        String?                     @db.VarChar(2048)
+  sourceName        String                      @db.VarChar(80)
+  sourceUrl         String                      @db.VarChar(2048)
+  publicationStatus UniversityPublicationStatus @default(DRAFT)
+  verificationStatus VerificationStatus          @default(DISCOVERED)
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  university        University                  @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  admissionRequirements AdmissionRequirement[]
+  tuitionRecords    Tuition[]
+  scholarships      Scholarship[]
+  intakes           Intake[]
+  fieldClaims       UniversityFieldClaim[]
+
+  @@unique([universityId, slug])
+  @@index([universityId, degreeLevel])
+  @@index([sourceName, sourceUrl(length: 500)])
+  @@index([publicationStatus])
+  @@index([verificationStatus])
+  @@index([universityId, studyLevel, programType])
+}
+
+model AdmissionRequirement {
+  id                      String     @id @default(cuid()) @db.VarChar(30)
+  universityId            String     @db.VarChar(30)
+  programId               String?    @db.VarChar(30)
+  studyLevel              String?    @db.VarChar(120)
+  entryRoute              String?    @db.VarChar(80)
+  minimumGpa              Decimal?   @db.Decimal(5, 2)
+  academicRequirementText String?    @db.Text
+  ieltsOverall            Decimal?   @db.Decimal(5, 2)
+  ieltsListening          Decimal?   @db.Decimal(5, 2)
+  ieltsReading            Decimal?   @db.Decimal(5, 2)
+  ieltsWriting            Decimal?   @db.Decimal(5, 2)
+  ieltsSpeaking           Decimal?   @db.Decimal(5, 2)
+  toeflOverall            Decimal?   @db.Decimal(6, 2)
+  toeflListening          Decimal?   @db.Decimal(5, 2)
+  toeflReading            Decimal?   @db.Decimal(5, 2)
+  toeflWriting            Decimal?   @db.Decimal(5, 2)
+  toeflSpeaking           Decimal?   @db.Decimal(5, 2)
+  pteOverall              Decimal?   @db.Decimal(5, 2)
+  duolingoOverall         Decimal?   @db.Decimal(6, 2)
+  greRequired             Boolean?
+  gmatRequired            Boolean?
+  satRequired             Boolean?
+  actRequired             Boolean?
+  credentialEvaluationRequirement String? @db.Text
+  requiredDocuments       Json?
+  prerequisiteSubjects    String?    @db.Text
+  workExperience          String?    @db.Text
+  portfolioRequired       Boolean?
+  statementOfPurposeRequired Boolean?
+  recommendationLetters   Int?
+  applicationFee          Decimal?   @db.Decimal(12, 2)
+  currency                String?    @db.VarChar(10)
+  requirementUrl          String?    @db.VarChar(2048)
+  applicationUrl          String?    @db.VarChar(2048)
+  sourceName              String     @db.VarChar(80)
+  sourceUrl               String     @db.VarChar(2048)
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+  verificationStatus      VerificationStatus @default(DISCOVERED)
+  university              University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  program                 Program?   @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([universityId, studyLevel])
+  @@index([programId])
+  @@index([sourceName, sourceUrl(length: 500)])
+  @@index([verificationStatus])
+  @@index([universityId, programId, studyLevel, entryRoute])
+}
+
+model Tuition {
+  id            String     @id @default(cuid()) @db.VarChar(30)
+  universityId  String     @db.VarChar(30)
+  programId     String?    @db.VarChar(30)
+  studyLevel    String?    @db.VarChar(120)
+  amount        Decimal?   @db.Decimal(14, 2)
+  currency      String?    @db.VarChar(10)
+  period        String?    @db.VarChar(80)
+  livingCost    Decimal?   @db.Decimal(14, 2)
+  housingCost   Decimal?   @db.Decimal(14, 2)
+  mealCost      Decimal?   @db.Decimal(14, 2)
+  booksCost     Decimal?   @db.Decimal(14, 2)
+  insuranceCost Decimal?   @db.Decimal(14, 2)
+  otherFees     Decimal?   @db.Decimal(14, 2)
+  estimatedCoa  Decimal?   @db.Decimal(14, 2)
+  tuitionUrl    String?    @db.VarChar(2048)
+  academicYear  String?    @db.VarChar(40)
+  sourceName    String     @db.VarChar(80)
+  sourceUrl     String     @db.VarChar(2048)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  verificationStatus VerificationStatus @default(DISCOVERED)
+  university    University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  program       Program?   @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([universityId, studyLevel])
+  @@index([programId])
+  @@index([sourceName, sourceUrl(length: 500)])
+  @@index([verificationStatus])
+}
+
+model Scholarship {
+  id                          String                      @id @default(cuid()) @db.VarChar(30)
+  universityId                String                      @db.VarChar(30)
+  programId                   String?                     @db.VarChar(30)
+  name                        String?                     @db.VarChar(255)
+  scholarshipAvailable        ScholarshipAvailability     @default(UNKNOWN)
+  amountText                  String?                     @db.VarChar(500)
+  minimumAmount               Decimal?                    @db.Decimal(14, 2)
+  maximumAmount               Decimal?                    @db.Decimal(14, 2)
+  currency                    String?                     @db.VarChar(10)
+  scholarshipType             String?                     @db.VarChar(120)
+  studyLevel                  String?                     @db.VarChar(120)
+  entryRoute                  String?                     @db.VarChar(80)
+  eligibilityText             String?                     @db.Text
+  minimumGpa                  Decimal?                    @db.Decimal(5, 2)
+  isAutomatic                 Boolean?
+  requiresSeparateApplication Boolean?
+  isRenewable                 Boolean?
+  renewalCriteria             String?                     @db.Text
+  deadlineText                String?                     @db.VarChar(255)
+  scholarshipUrl              String?                     @db.VarChar(2048)
+  sourceUrl                   String                      @db.VarChar(2048)
+  sourceName                  String                      @db.VarChar(80)
+  publicationStatus           UniversityPublicationStatus @default(DRAFT)
+  createdAt                   DateTime                    @default(now())
+  updatedAt                   DateTime                    @updatedAt
+  verificationStatus          VerificationStatus          @default(DISCOVERED)
+  university                  University                  @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  program                     Program?                    @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([universityId, scholarshipAvailable])
+  @@index([programId])
+  @@index([sourceName, sourceUrl(length: 500)])
+  @@index([publicationStatus])
+  @@index([verificationStatus])
+}
+
+model Intake {
+  id           String     @id @default(cuid()) @db.VarChar(30)
+  universityId String     @db.VarChar(30)
+  programId    String?    @db.VarChar(30)
+  term         String     @db.VarChar(120)
+  month        Int?
+  year         Int?
+  deadline     DateTime?
+  deadlineType String?    @db.VarChar(120)
+  studyLevel   String?    @db.VarChar(120)
+  entryRoute   String?    @db.VarChar(80)
+  intakeUrl    String?    @db.VarChar(2048)
+  sourceName   String     @db.VarChar(80)
+  sourceUrl    String     @db.VarChar(2048)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  verificationStatus VerificationStatus @default(DISCOVERED)
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  program      Program?   @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([universityId, term, year])
+  @@index([programId])
+  @@index([sourceName, sourceUrl(length: 500)])
+  @@index([verificationStatus])
+}
+
+model UniversityLink {
+  id           String     @id @default(cuid()) @db.VarChar(30)
+  universityId String     @db.VarChar(30)
+  type         String     @db.VarChar(80)
+  label        String?    @db.VarChar(160)
+  url          String     @db.VarChar(2048)
+  sourceName   String     @db.VarChar(80)
+  sourceUrl    String     @db.VarChar(2048)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([universityId, type, url(length: 500)])
+  @@index([sourceName, sourceUrl(length: 500)])
+}
+
+model UniversityAlias {
+  id           String     @id @default(cuid()) @db.VarChar(30)
+  universityId String     @db.VarChar(30)
+  name         String     @db.VarChar(255)
+  normalizedName String   @db.VarChar(255)
+  sourceName   String     @db.VarChar(80)
+  sourceUrl    String     @db.VarChar(2048)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([universityId, normalizedName])
+  @@index([normalizedName])
+  @@index([sourceName, sourceUrl(length: 500)])
+}
+
+model ImportJob {
+  id              String          @id @default(cuid()) @db.VarChar(30)
+  sourceName      String          @db.VarChar(80)
+  status          ImportJobStatus @default(PENDING)
+  mode            ImportMode      @default(PILOT)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  discoveredCount Int             @default(0)
+  importedCount   Int             @default(0)
+  updatedCount    Int             @default(0)
+  skippedCount    Int             @default(0)
+  failedCount     Int             @default(0)
+  errorSummary    String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  records         ImportRecord[]
+
+  @@index([sourceName, createdAt])
+  @@index([status, createdAt])
+}
+
+model ImportRecord {
+  id                         String             @id @default(cuid()) @db.VarChar(30)
+  importJobId                String             @db.VarChar(30)
+  universityId              String?            @db.VarChar(30)
+  sourceUrl                  String             @db.VarChar(2048)
+  entityType                 String             @db.VarChar(80)
+  entityName                 String?            @db.VarChar(255)
+  status                     ImportRecordStatus @default(STAGED)
+  rawPayload                 Json
+  normalizedPayload          Json
+  normalizedDataHash         String?            @db.Char(64)
+  missingFields              Json?
+  validationErrors           Json?
+  duplicateWarning           String?            @db.Text
+  duplicateUniversityId      String?            @db.VarChar(30)
+  errorMessage               String?            @db.Text
+  reviewedById               String?            @db.VarChar(30)
+  reviewedAt                 DateTime?
+  reviewNote                 String?            @db.Text
+  enrichmentMetadata        Json?
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+  importJob                  ImportJob           @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  reviewedBy                 AdminUser?          @relation("ImportRecordReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  university                 University?         @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  fieldClaims               UniversityFieldClaim[]
+
+  @@index([importJobId, status])
+  @@index([sourceUrl(length: 500)])
+  @@index([normalizedDataHash])
+  @@index([duplicateUniversityId])
+  @@index([reviewedById])
+  @@index([universityId, status])
+}
+
+model UniversityFieldClaim {
+  id                String              @id @default(cuid()) @db.VarChar(30)
+  universityId      String              @db.VarChar(30)
+  importRecordId    String              @db.VarChar(30)
+  programId         String?             @db.VarChar(30)
+  entityType        String              @db.VarChar(80)
+  entityId          String?             @db.VarChar(30)
+  fieldName         String              @db.VarChar(160)
+  valueJson         Json
+  normalizedValue   String?             @db.Text
+  sourceName        String              @db.VarChar(80)
+  sourceUrl         String              @db.VarChar(2048)
+  authorityLevel    FieldAuthorityLevel
+  confidence        Int
+  observedAt        DateTime
+  rawEvidenceText   String?             @db.Text
+  isPreferred       Boolean             @default(false)
+  conflictStatus    FieldConflictStatus @default(NONE)
+  scopeLabel        String?             @db.VarChar(120)
+  studyLevel        String?             @db.VarChar(120)
+  entryRoute        String?             @db.VarChar(80)
+  academicYear      String?             @db.VarChar(40)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  university        University          @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  importRecord      ImportRecord        @relation(fields: [importRecordId], references: [id], onDelete: Cascade)
+  program           Program?            @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([universityId, entityType, fieldName])
+  @@index([programId, fieldName])
+  @@index([importRecordId])
+  @@index([sourceName, sourceUrl(length: 500)])
+  @@index([conflictStatus, isPreferred])
+  @@index([universityId, studyLevel, entryRoute, academicYear])
+}
+
 enum NotificationStatus {
   PENDING
   SENT
@@ -139,4 +505,66 @@ enum AdminRole {
   SUPER_ADMIN
   EDITOR
   STAFF
+}
+
+enum UniversityPublicationStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ScholarshipAvailability {
+  AVAILABLE
+  UNAVAILABLE
+  UNKNOWN
+}
+
+enum ImportJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+}
+
+enum ImportRecordStatus {
+  STAGED
+  IMPORTED
+  UPDATED
+  SKIPPED
+  FAILED
+  MANUAL_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum ImportMode {
+  PILOT
+  DRY_RUN
+  ENRICHMENT
+}
+
+enum VerificationStatus {
+  DISCOVERED
+  PARTNER_MATCHED
+  OFFICIAL_VERIFIED
+  MANUALLY_VERIFIED
+  VERIFICATION_FAILED
+}
+
+enum FieldAuthorityLevel {
+  MANUAL_VERIFIED
+  OFFICIAL_UNIVERSITY
+  UNIVERSITY_STUDY
+  STUDIES_OVERSEAS
+  PATHWAY_PROVIDER
+}
+
+enum FieldConflictStatus {
+  NONE
+  CONFLICT_REVIEW
+  MANUAL_LOCKED
+  SCOPE_MISMATCH
+  ACADEMIC_YEAR_MISMATCH
+  UNRESOLVED
 }

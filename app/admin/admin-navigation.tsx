@@ -16,6 +16,7 @@ import {
   IoPersonCircleOutline,
   IoPricetagsOutline,
   IoSettingsOutline,
+  IoSchoolOutline,
 } from "react-icons/io5";
 import { logoutAction } from "./actions";
 import type { AdminRole } from "@prisma/client";
@@ -28,6 +29,7 @@ const items = [
   { href: "/admin/blog", label: "Blog", exact: true, icon: IoAlbumsOutline, permission: "manage_blog" },
   { href: "/admin/blog/categories", label: "Categories", icon: IoPricetagsOutline, permission: "manage_categories" },
   { href: "/admin/media", label: "Media Library", icon: IoImagesOutline, permission: "manage_media" },
+  { href: "/admin/university-data", label: "University Data", icon: IoSchoolOutline, permission: "manage_university_data" },
   { href: "/admin/users", label: "Users", icon: IoSettingsOutline, permission: "manage_users" },
   { href: "/admin/profile", label: "Profile", icon: IoPersonCircleOutline, permission: "manage_profile" },
 ] satisfies Array<{ href: string; label: string; exact?: boolean; icon: typeof IoGridOutline; permission: AdminPermission }>;

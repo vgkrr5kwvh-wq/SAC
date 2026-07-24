@@ -1,0 +1,43 @@
+{
+  "target": {
+    "id": "cm12345678901234567890123",
+    "name": "Auburn University",
+    "slug": "auburn-university",
+    "country": "USA",
+    "state": "Alabama",
+    "city": "Auburn",
+    "officialWebsiteUrl": "https://www.auburn.edu/",
+    "verificationStatus": "DISCOVERED",
+    "aliases": [],
+    "universityStudyUrl": "https://universitystudy.com/study-destinations/"
+  },
+  "studiesCatalog": "studies-catalog.html",
+  "studiesProfiles": {
+    "https://www.studies-overseas.com/universities/usa/auburn-university": "studies-auburn.html"
+  },
+  "homepage": "homepage.html",
+  "pages": {
+    "https://www.auburn.edu/": "homepage.html",
+    "https://www.auburn.edu/admissions/undergraduate": "undergraduate.html",
+    "https://www.auburn.edu/admissions/graduate": "graduate.html",
+    "https://www.auburn.edu/admissions/international/english": "english.html",
+    "https://www.auburn.edu/cost": "tuition.html",
+    "https://www.auburn.edu/scholarships": "scholarships.html",
+    "https://www.auburn.edu/apply/requirements": "requirements.html",
+    "https://www.auburn.edu/global/pathway": "pathway.html",
+    "https://www.auburn.edu/majors": "undergraduate-directory.html",
+    "https://www.auburn.edu/graduate/programs": "graduate-directory.html",
+    "https://www.auburn.edu/programs/accounting": "program-generic.html",
+    "https://www.auburn.edu/programs/aerospace-engineering": "program-generic.html",
+    "https://www.auburn.edu/programs/art-history-minor": "program-generic.html",
+    "https://www.auburn.edu/programs/data-certificate": "program-generic.html",
+    "https://www.auburn.edu/programs/finance-concentration": "program-generic.html",
+    "https://www.auburn.edu/programs/nursing": "program-generic.html",
+    "https://www.auburn.edu/programs/mba": "program-generic.html",
+    "https://www.auburn.edu/programs/computer-science-ms": "program-generic.html",
+    "https://www.auburn.edu/programs/graduate-certificate": "program-generic.html",
+    "https://www.auburn.edu/programs/public-administration": "program-generic.html",
+    "https://www.auburn.edu/programs/statistics": "program-generic.html",
+    "https://www.auburn.edu/programs/supply-chain": "program-generic.html"
+  }
+}
