@@ -7,7 +7,7 @@ import ToolProgress from "@/components/student-hub/tool-progress";
 import ToolStep from "@/components/student-hub/tool-step";
 import LoadingResults from "@/components/student-hub/results/loading-results";
 import ResultsPage from "@/components/student-hub/results/results-page";
-import { sampleUniversities } from "@/lib/student-hub/universities";
+import type { University } from "@/lib/student-hub/universities";
 import { generateUniversityRecommendations } from "@/lib/student-hub/university-finder/recommendations";
 import {
   universityFinderSchema,
@@ -68,7 +68,7 @@ const stepSchemas = [
   universityFinderStep4Schema,
 ] as const;
 
-export default function UniversityFinder() {
+export default function UniversityFinder({ catalog }: { catalog: readonly University[] }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<UniversityFinderAnswers>(initialUniversityFinderAnswers);
   const [errors, setErrors] = useState<FinderErrors>({});
@@ -142,7 +142,7 @@ export default function UniversityFinder() {
 
     setIsPreparingResults(true);
     requestAnimationFrame(() => {
-      setRecommendations(generateUniversityRecommendations(result.data, sampleUniversities));
+      setRecommendations(generateUniversityRecommendations(result.data, catalog));
       setIsPreparingResults(false);
     });
   };
@@ -166,7 +166,7 @@ export default function UniversityFinder() {
       <ResultsPage
         answers={answers}
         recommendations={recommendations}
-        totalEvaluated={sampleUniversities.length}
+        totalEvaluated={catalog.length}
         onModifyAnswers={modifyAnswers}
       />
     );

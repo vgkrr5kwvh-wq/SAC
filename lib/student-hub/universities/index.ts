@@ -1,5 +1,21 @@
 export { sampleUniversities } from "./data";
 export {
+  createLocalUniversityCatalogRepository,
+  localUniversityCatalogRepository,
+} from "./local-repository";
+export {
+  ingestUniversityCatalog,
+  supportedCatalogSchemaVersions,
+} from "./ingestion";
+export {
+  assessCatalogFreshness,
+  defaultVerificationFreshnessPolicy,
+  getVerificationFreshness,
+  isVerificationStale,
+} from "./freshness";
+export { normalizeCatalogSubject, normalizeRawUniversityCatalog } from "./normalization";
+export { CatalogIngestionError } from "./errors";
+export {
   academicRequirementSchema,
   englishRequirementSchema,
   intakeSchema,
@@ -45,3 +61,23 @@ export type {
   VerificationStatus,
 } from "./types";
 export type { CatalogInvariantIssue, UniversityCatalog, UniversityCatalogInput } from "./schema";
+export type {
+  CatalogIngestionFailure,
+  CatalogIngestionMetadata,
+  CatalogIngestionResult,
+  CatalogIngestionSuccess,
+  IngestUniversityCatalogOptions,
+  RawUniversityCatalogInput,
+  SupportedCatalogSchemaVersion,
+} from "./ingestion";
+export type {
+  CatalogFreshnessAssessment,
+  VerificationFreshness,
+  VerificationFreshnessPolicy,
+} from "./freshness";
+export type { CatalogIngestionIssue, CatalogIssueCode, CatalogIssueSeverity } from "./errors";
+export type {
+  CatalogProgramReference,
+  CatalogQueryOptions,
+  UniversityCatalogRepository,
+} from "./repository";

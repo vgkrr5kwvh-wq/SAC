@@ -135,9 +135,10 @@ test("renders the registry-driven Student Hub landing page", async () => {
   assert.match(html, /"@type":"ItemList"/i);
 });
 
-test("renders the University Match Finder questionnaire and results integration", async () => {
-  const [response, clientSource, resultsSource, cardSource] = await Promise.all([
+test("renders the University Match Finder questionnaire and validated repository integration", async () => {
+  const [response, pageSource, clientSource, resultsSource, cardSource] = await Promise.all([
     render("/student-hub/university-finder"),
+    readFile(new URL("../app/student-hub/university-finder/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/student-hub/university-finder/university-finder.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/student-hub/results/results-page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/student-hub/results/recommendation-card.tsx", import.meta.url), "utf8"),
@@ -157,6 +158,9 @@ test("renders the University Match Finder questionnaire and results integration"
   assert.match(html, /Demonstration experience/i);
   assert.match(html, /Educational guidance only/i);
   assert.doesNotMatch(html, /You are eligible|guaranteed admission/i);
+  assert.match(pageSource, /localUniversityCatalogRepository\.getCatalog/);
+  assert.match(pageSource, /<UniversityFinder catalog=\{catalog\}/);
+  assert.doesNotMatch(clientSource, /sampleUniversities|localUniversityCatalogRepository/);
   assert.match(clientSource, /generateUniversityRecommendations/);
   assert.match(resultsSource, /Universities to review/);
   assert.match(resultsSource, /totalEvaluated/);

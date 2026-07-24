@@ -20,7 +20,9 @@ const unknownScholarship = {
   verification: sampleVerification,
 } as const;
 
-const rawSampleUniversities = [
+export const rawSampleUniversityCatalog = {
+  schemaVersion: 1,
+  universities: [
   {
     id: "sample-university-us-001",
     slug: "sample-northstar-university",
@@ -154,9 +156,10 @@ const rawSampleUniversities = [
       },
     ],
   },
-] as const;
+  ],
+} as const;
 
 // This is an explicit migration of the former university-level fictional
 // catalog. No unknown admission, tuition, intake, scholarship, GPA, or English
 // values are invented during migration.
-export const sampleUniversities = parseUniversityCatalog(rawSampleUniversities);
+export const sampleUniversities = parseUniversityCatalog(rawSampleUniversityCatalog.universities);

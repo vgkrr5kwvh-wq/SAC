@@ -15,8 +15,8 @@ export const verificationMetadataSchema = z.object({
   sourceUrl: optionalUrl,
   notes: nullableText,
 }).strict().superRefine((value, context) => {
-  if (value.verificationStatus === "verified" && (!value.lastReviewedAt || !value.sourceUrl)) {
-    context.addIssue({ code: "custom", path: ["verificationStatus"], message: "Verified metadata requires lastReviewedAt and sourceUrl." });
+  if (value.verificationStatus === "verified" && !value.sourceUrl) {
+    context.addIssue({ code: "custom", path: ["verificationStatus"], message: "Verified metadata requires sourceUrl." });
   }
   if (value.sourceType === "sample" && value.verificationStatus === "verified") {
     context.addIssue({ code: "custom", path: ["sourceType"], message: "Sample sources cannot be marked verified." });
