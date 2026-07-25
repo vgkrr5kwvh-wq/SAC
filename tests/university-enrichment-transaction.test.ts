@@ -189,6 +189,8 @@ test("atomic persistence uses only tx, commits all writes, and bounds the transa
     "importJob.create",
     "importRecord.create",
     "program.upsert",
+    "universityLink.findFirst",
+    "universityLink.create",
     "universityFieldClaim.createMany",
   ]);
   await assert.rejects(

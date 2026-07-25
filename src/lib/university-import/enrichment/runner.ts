@@ -4,6 +4,7 @@ import { safeErrorMessage, safeImportLog } from "../logging";
 import { matchStudiesOverseasSource } from "./match-sources";
 import {
   crawlOfficialPages,
+  canonicalOfficialUrlIdentity,
   discoverApprovedOfficialPages,
   fetchOfficialPagesWithPlaywright,
   normalizedHostname,
@@ -13,6 +14,7 @@ import {
   type OfficialPageFetcher,
 } from "./official-site";
 import { extractStructuredOfficialClaims } from "./extractors/claims";
+import { extractOfficialUniversityProfileClaims } from "./extractors/university-profile";
 import {
   discoverOfficialProgramLinksWithDiagnostics,
   extractOfficialProgram,
@@ -138,19 +140,27 @@ export async function enrichUniversity(
   const officialClaims = officialPages.flatMap((page) =>
     extractStructuredOfficialClaims(page, target.slug)
   );
+  const profileClaims = extractOfficialUniversityProfileClaims(
+    homepage,
+    target.slug,
+    verifiedOfficialDomain,
+  );
   const programClaims = programs.flatMap((program) => program.claims);
   const claims = [
     ...discoveryClaims(target, observedAt),
     ...studiesOverseas.claims,
+    ...profileClaims,
     ...officialClaims,
     ...programClaims,
   ];
   const resolvedClaims = resolveSourceClaims(claims);
   const officialSuccess = officialPages.some((page) => page.html && page.status < 400);
   const verificationStatus = officialSuccess ? "OFFICIAL_VERIFIED" : "VERIFICATION_FAILED";
-  const presentFields = new Set(officialClaims.map((claim) => claim.fieldName));
+  const presentFields = new Set([...profileClaims, ...officialClaims].map((claim) => claim.fieldName));
   const missingFields = [
-    "officialName", "city", "state", "address", "institutionType", "foundedYear",
+    "officialName", "officialWebsiteUrl", "logoUrl", "bannerImageUrl", "city", "state",
+    "address", "institutionType", "foundedYear", "description", "campusType",
+    "universitySize", "internationalStudentInformation",
     "undergraduate.ieltsOverall", "graduate.ieltsOverall", "tuition.amount",
     "scholarship.scholarshipAvailable", "intake.deadline",
   ].filter((field) => !presentFields.has(field));
@@ -261,6 +271,33 @@ function prepareEnrichmentPersistence(result: EnrichmentResult): PreparedEnrichm
       conflictStatus: group?.conflictStatus ?? "NONE" as const,
     };
   });
+  const officialLinks = [
+    ...result.officialPages
+      .filter((page) => page.html && page.status < 400)
+      .map((page) => ({
+        type: page.kind === "homepage" ? "official-website" : page.kind,
+        label: page.label,
+        url: page.finalUrl,
+        sourceName: "official-university",
+        sourceUrl: page.finalUrl,
+      })),
+    ...result.programDirectoryPages
+      .filter((page) => page.html && page.status < 400)
+      .map((page) => ({
+        type: page.kind,
+        label: page.label,
+        url: page.finalUrl,
+        sourceName: "official-university",
+        sourceUrl: page.finalUrl,
+      })),
+  ];
+  const seenOfficialLinks = new Set<string>();
+  const directoryLinks = officialLinks.filter((link) => {
+    const identity = canonicalOfficialUrlIdentity(link.url) ?? link.url;
+    if (seenOfficialLinks.has(identity)) return false;
+    seenOfficialLinks.add(identity);
+    return true;
+  });
   return {
     startedAt,
     mainRecordData: {
@@ -336,13 +373,7 @@ function prepareEnrichmentPersistence(result: EnrichmentResult): PreparedEnrichm
         verificationStatus: "DISCOVERED",
       },
     })),
-    directoryLinks: result.programDirectoryPages.map((page) => ({
-      type: page.kind,
-      label: page.label,
-      url: page.finalUrl,
-      sourceName: "official-university",
-      sourceUrl: page.finalUrl,
-    })),
+    directoryLinks,
     claimData,
     conflictCount: claimData.filter((item) => item.conflictStatus !== "NONE").length,
   };

@@ -23,8 +23,42 @@ export type UniversityDetail = UniversitySummary & {
   address: string | null;
   description: string | null;
   bannerImageUrl: string | null;
+  links: UniversityPublicLink[];
+  admissionRequirements: UniversityAdmissionRequirement[];
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type UniversityPublicLink = {
+  id: string;
+  type: string;
+  label: string | null;
+  url: string;
+};
+
+export type UniversityAdmissionRequirement = {
+  id: string;
+  programId: string | null;
+  program: {
+    name: string;
+    slug: string;
+  } | null;
+  studyLevel: string | null;
+  entryRoute: string | null;
+  minimumGpa: number | null;
+  academicRequirementText: string | null;
+  ieltsOverall: number | null;
+  toeflOverall: number | null;
+  pteOverall: number | null;
+  duolingoOverall: number | null;
+  greRequired: boolean | null;
+  gmatRequired: boolean | null;
+  satRequired: boolean | null;
+  actRequired: boolean | null;
+  applicationFee: number | null;
+  currency: string | null;
+  requirementUrl: string | null;
+  applicationUrl: string | null;
 };
 
 export type PaginationMetadata = {

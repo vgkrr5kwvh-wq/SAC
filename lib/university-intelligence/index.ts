@@ -48,7 +48,9 @@ export type {
 export type {
   PaginatedResult,
   PaginationMetadata,
+  UniversityAdmissionRequirement,
   UniversityDetail,
+  UniversityPublicLink,
   UniversitySummary,
 } from "./dto/university.dto";
 export type {

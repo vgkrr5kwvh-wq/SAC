@@ -327,10 +327,21 @@ export function extractOfficialProgram(
   const key = `${slugify(name)}-${slugify(studyLevel)}-${slugify(programType)}`;
   const stemText = value($, "stem");
   const isStem = stemText === null ? null : /^true|yes|stem$/i.test(stemText);
-  const baseClaims: EnrichmentClaim[] = [
+  const degreeLevel = value($, "degree-level") ?? firstText($, ".degree-level, .program-degree, [class*='degree-type']");
+  const award = value($, "award") ?? firstText($, ".award, .credential");
+  const department = value($, "department") ?? firstText($, ".department, .college, [class*='academic-unit']");
+  const deliveryMode = value($, "delivery-mode") ?? firstText($, ".delivery-mode, [class*='delivery']");
+  const campus = value($, "campus") ?? firstText($, ".campus, [class*='campus']");
+  const durationText = value($, "duration") ?? firstText($, ".duration, [class*='duration']");
+  const creditsText = value($, "credits") ?? firstText($, ".credits, [class*='credit']");
+  const baseClaimValues: Array<[string, string | boolean | null]> = [
     ["name", name], ["studyLevel", studyLevel], ["programType", programType],
-    ["officialProgramUrl", page.finalUrl],
-  ].map(([fieldName, claimValue]) => ({
+    ["degreeLevel", degreeLevel], ["award", award], ["department", department],
+    ["deliveryMode", deliveryMode], ["campus", campus], ["durationText", durationText],
+    ["creditsText", creditsText], ["isStem", isStem], ["officialProgramUrl", page.finalUrl],
+  ];
+  const baseClaims: EnrichmentClaim[] = baseClaimValues.flatMap(([fieldName, claimValue]) =>
+    claimValue === null ? [] : [{
     entityType: "program",
     entityKey: key,
     programKey: key,
@@ -347,21 +358,21 @@ export function extractOfficialProgram(
     studyLevel,
     entryRoute: "direct",
     academicYear: null,
-  }));
+  }]);
   return {
     key,
     name,
     slug: slugify(`${name}-${studyLevel}-${programType}`),
     studyLevel,
-    degreeLevel: value($, "degree-level") ?? firstText($, ".degree-level, .program-degree, [class*='degree-type']"),
-    award: value($, "award") ?? firstText($, ".award, .credential"),
+    degreeLevel,
+    award,
     programType,
-    department: value($, "department") ?? firstText($, ".department, .college, [class*='academic-unit']"),
+    department,
     officialProgramUrl: page.finalUrl,
-    deliveryMode: value($, "delivery-mode") ?? firstText($, ".delivery-mode, [class*='delivery']"),
-    campus: value($, "campus") ?? firstText($, ".campus, [class*='campus']"),
-    durationText: value($, "duration") ?? firstText($, ".duration, [class*='duration']"),
-    creditsText: value($, "credits") ?? firstText($, ".credits, [class*='credit']"),
+    deliveryMode,
+    campus,
+    durationText,
+    creditsText,
     isStem,
     active: true,
     lastVerifiedAt: page.checkedAt,

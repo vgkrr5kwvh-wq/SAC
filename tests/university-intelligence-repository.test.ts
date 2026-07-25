@@ -25,6 +25,8 @@ function universityRecord(overrides: Record<string, unknown> = {}) {
     createdAt,
     updatedAt,
     _count: { programs: 4 },
+    links: [],
+    admissionRequirements: [],
     internalFieldThatMustNotLeak: "internal",
     ...overrides,
   };
@@ -70,6 +72,45 @@ test("getById and getBySlug default to published DTO reads", async () => {
   assert.deepEqual(calls[1].args.where, {
     slug: "auburn-university",
     publicationStatus: "PUBLISHED",
+  });
+  assert.deepEqual(
+    (calls[0].args.include as {
+      _count: { select: { programs: { where: unknown } } };
+    })._count.select.programs.where,
+    {
+      publicationStatus: "PUBLISHED",
+      active: true,
+    },
+  );
+});
+
+test("public programCount uses only published active programs", async () => {
+  const draftOnly = repositoryMock([
+    universityRecord({ _count: { programs: 0 } }),
+  ]);
+  const publishedActive = repositoryMock([
+    universityRecord({ _count: { programs: 2 } }),
+  ]);
+
+  const draftResult = await draftOnly.repository.list();
+  const publishedResult = await publishedActive.repository.list();
+
+  assert.equal(draftResult.items[0].programCount, 0);
+  assert.equal(publishedResult.items[0].programCount, 2);
+  const include = draftOnly.calls.find(
+    (call) => call.operation === "findMany",
+  )?.args.include;
+  assert.deepEqual(include, {
+    _count: {
+      select: {
+        programs: {
+          where: {
+            publicationStatus: "PUBLISHED",
+            active: true,
+          },
+        },
+      },
+    },
   });
 });
 

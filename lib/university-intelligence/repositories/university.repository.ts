@@ -10,6 +10,8 @@ import { prisma } from "@/lib/prisma";
 import {
   mapUniversityToDetail,
   mapUniversityToSummary,
+  universityDetailInclude,
+  universitySummaryInclude,
 } from "../mappers/university.mapper";
 import type {
   PaginatedResult,
@@ -114,13 +116,7 @@ export class UniversityRepository {
           options.publicationStatus ??
           PrismaUniversityPublicationStatus.PUBLISHED,
       },
-      include: {
-        _count: {
-          select: {
-            programs: true,
-          },
-        },
-      },
+      include: universityDetailInclude,
     });
 
     return university ? mapUniversityToDetail(university) : null;
@@ -137,13 +133,7 @@ export class UniversityRepository {
           options.publicationStatus ??
           PrismaUniversityPublicationStatus.PUBLISHED,
       },
-      include: {
-        _count: {
-          select: {
-            programs: true,
-          },
-        },
-      },
+      include: universityDetailInclude,
     });
 
     return university ? mapUniversityToDetail(university) : null;
@@ -162,13 +152,7 @@ export class UniversityRepository {
     const [universities, totalItems] = await Promise.all([
       this.client.university.findMany({
         where,
-        include: {
-          _count: {
-            select: {
-              programs: true,
-            },
-          },
-        },
+        include: universitySummaryInclude,
         orderBy: {
           name: "asc",
         },
@@ -247,13 +231,7 @@ export class UniversityRepository {
     const [universities, totalItems] = await Promise.all([
       this.client.university.findMany({
         where,
-        include: {
-          _count: {
-            select: {
-              programs: true,
-            },
-          },
-        },
+        include: universitySummaryInclude,
         orderBy: {
           name: "asc",
         },

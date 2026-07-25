@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { hasAdminPermission } from "@/lib/admin-authorization";
 import { prisma } from "@/lib/prisma";
+import { claimNumber } from "./materialization-values";
 
 const reviewInputSchema = z.object({
   recordId: z.string().cuid(),
@@ -14,11 +15,6 @@ const reviewInputSchema = z.object({
 });
 
 export type ImportReviewActionState = { status: "idle" | "success" | "error"; message: string };
-
-function claimNumber(value: Prisma.JsonValue): number | null {
-  const number = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(number) ? number : null;
-}
 
 function claimText(value: Prisma.JsonValue): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -56,6 +52,7 @@ export async function materializeApprovedEnrichment(
     officialName: "name", city: "city", state: "state", address: "address",
     institutionType: "institutionType", foundedYear: "foundedYear",
     description: "description", logoUrl: "logoUrl", officialWebsiteUrl: "officialWebsiteUrl",
+    bannerImageUrl: "bannerImageUrl",
   };
   for (const claim of preferred.filter((item) => item.entityType === "university")) {
     const field = universityFieldMap[claim.fieldName];

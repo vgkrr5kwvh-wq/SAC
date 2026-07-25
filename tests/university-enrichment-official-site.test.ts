@@ -194,6 +194,29 @@ test("uses ordinary program-page metadata and retains a balanced ten-program cap
   assert.equal(program?.isStem, null);
 });
 
+test("creates official claims for every supported program metadata value", async () => {
+  const entry = {
+    name: "Accounting",
+    url: "https://www.auburn.edu/programs/accounting",
+    studyLevel: "undergraduate",
+    programType: "major",
+  };
+  const program = extractOfficialProgram(snapshot({
+    url: entry.url,
+    label: entry.name,
+    kind: "program",
+  }, await fixture("program-generic.html")), entry);
+  assert.ok(program);
+  const fields = new Set(program.claims.map((claim) => claim.fieldName));
+  for (const field of [
+    "name", "studyLevel", "programType", "degreeLevel", "award", "department",
+    "deliveryMode", "campus", "durationText", "creditsText", "officialProgramUrl",
+  ]) {
+    assert.equal(fields.has(field), true, `missing ${field} claim`);
+  }
+  assert.equal(fields.has("isStem"), false);
+});
+
 test("normalizes Auburn option, track, punctuation, degree suffix, and parent-program headings", () => {
   assert.equal(academicProgramHeadingMatches(
     "Clinical Mental Health Counseling — MEd",
