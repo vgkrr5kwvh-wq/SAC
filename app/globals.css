@@ -1862,23 +1862,37 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
 .university-review-card details { overflow: hidden; border: 1px solid var(--line); border-radius: 9px; }
 .university-review-card summary { padding: 12px 14px; cursor: pointer; font-weight: 750; }
 .university-review-card pre { max-height: 360px; margin: 0; padding: 16px; overflow: auto; border-top: 1px solid var(--line); background: #101827; color: #e4edf7; font-size: .75rem; }
-.university-review-controls { display: grid; gap: 10px; }
+.university-review-controls { position: sticky; z-index: 4; top: 12px; display: grid; gap: 10px; padding: 14px; border: 1px solid #b7cfdf; border-radius: 11px; background: rgba(248,252,255,.97); box-shadow: 0 8px 22px rgba(18,41,62,.1); backdrop-filter: blur(8px); }
 .university-review-controls label { display: grid; gap: 6px; color: var(--muted); font-size: .78rem; font-weight: 750; }
 .university-review-controls textarea { padding: 10px; border: 1px solid #bcc9d5; border-radius: 8px; font: inherit; }
-.university-review-controls div { display: flex; gap: 10px; }
+.university-review-action-summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.university-review-action-summary dl { display: flex; flex-wrap: wrap; gap: 8px 18px; overflow: visible; border: 0; background: transparent; }
+.university-review-action-summary dl div { padding: 0; background: transparent; }
+.university-review-action-summary dd { margin-top: 2px; font-size: .82rem; font-weight: 750; }
+.university-review-action-links { display: flex; align-items: center; gap: 12px; }
+.university-review-action-links > a { color: var(--blue-dark); font-size: .8rem; font-weight: 750; white-space: nowrap; }
+.university-review-action-buttons { display: flex; gap: 10px; }
 .university-review-controls button { padding: 9px 16px; border: 0; border-radius: 8px; background: var(--blue-dark); color: white; font-weight: 750; }
 .university-review-controls button.is-reject { background: #9f2d38; }
+.university-review-controls button:disabled,.university-review-controls textarea:disabled { cursor: wait; opacity: .6; }
 .university-review-controls p { margin: 0; color: #1b6e40; }
 .university-review-controls p.is-error { color: #9f2d38; }
 .university-enrichment-review { display: grid; gap: 14px; padding-top: 6px; }
 .university-enrichment-review > h3 { margin: 4px 0 0; }
 .university-claim-groups { display: grid; gap: 12px; }
-.university-claim-groups > article { padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; }
-.university-claim-groups header { display: flex; justify-content: space-between; gap: 12px; }
+.university-claim-groups > details { border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; }
+.university-claim-groups > details.has-conflict { border-color: #d89ca3; background: #fff9fa; }
+.university-claim-groups > details > summary { display: flex; justify-content: space-between; gap: 12px; }
+.university-claim-groups > details > summary span { color: var(--blue-dark); font-size: .75rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.university-claim-group-content { padding: 0 16px 16px; }
 .university-claim-groups p { margin: 8px 0; color: #465568; font-size: .86rem; }
 .university-claim-groups ul { margin: 10px 0 0; padding-left: 20px; }
 .university-claim-groups a { color: var(--blue-dark); font-weight: 700; }
 
 @media (max-width: 800px) {
   .university-data-metrics,.university-data-links,.university-review-card dl,.university-review-flags { grid-template-columns: 1fr; }
+  .university-review-controls { position: static; }
+  .university-review-action-summary,.university-review-action-links { align-items: stretch; flex-direction: column; }
+  .university-review-action-summary dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .university-review-action-buttons button { flex: 1; }
 }
