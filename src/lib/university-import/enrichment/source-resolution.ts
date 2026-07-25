@@ -1,15 +1,8 @@
 import type { FieldAuthorityLevel, FieldConflictStatus } from "@prisma/client";
 import type { VerificationStatus } from "@prisma/client";
+import { selectPreferredClaim } from "./claim-precedence";
 import { claimScopeKey, claimsConflict, scopeDescription } from "./field-comparison";
 import type { EnrichmentClaim, ResolvedClaimGroup } from "./types";
-
-const authorityRank: Record<FieldAuthorityLevel, number> = {
-  MANUAL_VERIFIED: 500,
-  OFFICIAL_UNIVERSITY: 400,
-  PATHWAY_PROVIDER: 350,
-  UNIVERSITY_STUDY: 200,
-  STUDIES_OVERSEAS: 100,
-};
 
 export const defaultClaimConfidence: Record<FieldAuthorityLevel, number> = {
   MANUAL_VERIFIED: 100,
@@ -25,11 +18,7 @@ export function validateConfidence(value: number): number {
 }
 
 function preferredClaim(claims: readonly EnrichmentClaim[]): EnrichmentClaim {
-  return [...claims].sort((left, right) =>
-    authorityRank[right.authorityLevel] - authorityRank[left.authorityLevel]
-    || right.confidence - left.confidence
-    || right.observedAt.getTime() - left.observedAt.getTime()
-  )[0];
+  return selectPreferredClaim(claims);
 }
 
 export function resolveSourceClaims(claims: readonly EnrichmentClaim[]): ResolvedClaimGroup[] {

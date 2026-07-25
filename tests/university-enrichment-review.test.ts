@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { Prisma } from "@prisma/client";
 import { materializeApprovedEnrichment } from "../app/admin/university-data/actions";
+import {
+  selectClaimsForMaterialization,
+  type MaterializationClaim,
+} from "../app/admin/university-data/materialization-claims";
 
 test("approval materializes all Auburn review domains with source attribution and no publication", async () => {
   const writes: Array<{ model: string; operation: string; data: Record<string, unknown> }> = [];
@@ -145,4 +149,57 @@ test("approval materializes all Auburn review domains with source attribution an
   assert.equal(programRequirement?.data.programId, "mba-id");
   assert.equal(programRequirement?.data.ieltsOverall, 7);
   assert.equal(writes.some((write) => write.data.publicationStatus === "PUBLISHED"), false);
+});
+
+function websiteClaim(overrides: Partial<MaterializationClaim> = {}): MaterializationClaim {
+  return {
+    id: "claim-official",
+    programId: null,
+    entityType: "university",
+    fieldName: "officialWebsiteUrl",
+    valueJson: "https://auburn.edu/",
+    sourceName: "official-university",
+    sourceUrl: "https://auburn.edu/",
+    authorityLevel: "OFFICIAL_UNIVERSITY",
+    confidence: 95,
+    observedAt: new Date("2026-07-25T00:00:00Z"),
+    studyLevel: null,
+    entryRoute: "direct",
+    academicYear: null,
+    isPreferred: true,
+    ...overrides,
+  };
+}
+
+test("materialisation selects exactly one authoritative singleton independent of row order", async () => {
+  const partner = websiteClaim({
+    id: "claim-partner",
+    valueJson: "http://www.auburn.edu/",
+    sourceName: "university-study",
+    sourceUrl: "https://universitystudy.com/study-destinations/",
+    authorityLevel: "UNIVERSITY_STUDY",
+    confidence: 78,
+    observedAt: new Date("2026-07-24T00:00:00Z"),
+    entryRoute: null,
+  });
+  const official = websiteClaim();
+  const first = selectClaimsForMaterialization([partner, official]);
+  const reversed = selectClaimsForMaterialization([official, partner]);
+  assert.equal(first.length, 1);
+  assert.equal(reversed.length, 1);
+  assert.equal(first[0].id, "claim-official");
+  assert.equal(reversed[0].id, "claim-official");
+  assert.equal([partner, official].length, 2, "losing claims remain available for provenance");
+
+  const writes: Array<Record<string, unknown>> = [];
+  const transaction = {
+    university: {
+      update: async ({ data }: { data: Record<string, unknown> }) => {
+        writes.push(data);
+        return { id: "auburn-id" };
+      },
+    },
+  } as unknown as Prisma.TransactionClient;
+  await materializeApprovedEnrichment(transaction, "auburn-id", [partner, official]);
+  assert.deepEqual(writes, [{ officialWebsiteUrl: "https://auburn.edu/" }]);
 });

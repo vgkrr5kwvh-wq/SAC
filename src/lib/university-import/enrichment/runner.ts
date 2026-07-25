@@ -22,6 +22,7 @@ import {
   qualifyOfficialProgramPage,
 } from "./extractors/programs";
 import { defaultClaimConfidence, resolveSourceClaims } from "./source-resolution";
+import { claimScopeKey } from "./field-comparison";
 import type {
   EnrichmentClaim,
   EnrichmentResult,
@@ -258,10 +259,7 @@ function prepareEnrichmentPersistence(result: EnrichmentResult): PreparedEnrichm
   const startedAt = new Date();
   const resolvedByKey = new Map(result.resolvedClaims.map((group) => [group.key, group]));
   const claimData = result.claims.map((claim) => {
-    const group = resolvedByKey.get([
-      claim.entityType, claim.entityKey, claim.programKey ?? "", claim.fieldName,
-      claim.studyLevel ?? "", claim.entryRoute ?? "", claim.academicYear ?? "",
-    ].join("|"));
+    const group = resolvedByKey.get(claimScopeKey(claim));
     return {
       claim,
       valueJson: json(claim.value),

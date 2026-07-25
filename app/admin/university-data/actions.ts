@@ -6,7 +6,15 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { hasAdminPermission } from "@/lib/admin-authorization";
 import { prisma } from "@/lib/prisma";
+import {
+  isUniversitySingletonClaim,
+  universitySingletonFields,
+} from "@/src/lib/university-import/enrichment/claim-precedence";
 import { claimNumber } from "./materialization-values";
+import {
+  selectClaimsForMaterialization,
+  type MaterializationClaim,
+} from "./materialization-claims";
 
 const reviewInputSchema = z.object({
   recordId: z.string().cuid(),
@@ -33,23 +41,12 @@ function verificationForSource(sourceName: string) {
 export async function materializeApprovedEnrichment(
   transaction: Prisma.TransactionClient,
   universityId: string,
-  claims: Array<{
-    programId: string | null;
-    entityType: string;
-    fieldName: string;
-    valueJson: Prisma.JsonValue;
-    sourceName: string;
-    sourceUrl: string;
-    studyLevel: string | null;
-    entryRoute: string | null;
-    academicYear: string | null;
-    isPreferred: boolean;
-  }>,
+  claims: MaterializationClaim[],
 ) {
-  const preferred = claims.filter((claim) => claim.isPreferred);
+  const preferred = selectClaimsForMaterialization(claims);
   const universityData: Record<string, string | number | null> = {};
   const universityFieldMap: Record<string, string> = {
-    officialName: "name", city: "city", state: "state", address: "address",
+    officialName: "name", name: "name", city: "city", state: "state", address: "address",
     institutionType: "institutionType", foundedYear: "foundedYear",
     description: "description", logoUrl: "logoUrl", officialWebsiteUrl: "officialWebsiteUrl",
     bannerImageUrl: "bannerImageUrl",
@@ -265,12 +262,49 @@ export async function reviewImportRecordAction(
             const claims = await transaction.universityFieldClaim.findMany({
               where: { importRecordId: parsed.data.recordId },
               select: {
-                programId: true, entityType: true, fieldName: true, valueJson: true,
+                id: true, programId: true, entityType: true, fieldName: true, valueJson: true,
                 sourceName: true, sourceUrl: true, studyLevel: true, entryRoute: true,
-                academicYear: true, isPreferred: true,
+                academicYear: true, isPreferred: true, authorityLevel: true,
+                confidence: true, observedAt: true,
               },
             });
-            await materializeApprovedEnrichment(transaction, enrichment.universityId, claims);
+            const historicalSingletonClaims = await transaction.universityFieldClaim.findMany({
+              where: {
+                universityId: enrichment.universityId,
+                entityType: "university",
+                fieldName: { in: [...universitySingletonFields] },
+                importRecordId: { not: parsed.data.recordId },
+              },
+              select: {
+                id: true, programId: true, entityType: true, fieldName: true, valueJson: true,
+                sourceName: true, sourceUrl: true, studyLevel: true, entryRoute: true,
+                academicYear: true, isPreferred: true, authorityLevel: true,
+                confidence: true, observedAt: true,
+              },
+            });
+            const materializationClaims = [...claims, ...historicalSingletonClaims];
+            const selected = selectClaimsForMaterialization(materializationClaims);
+            for (const winner of selected.filter(isUniversitySingletonClaim)) {
+              const singletonFieldNames = winner.fieldName === "name" || winner.fieldName === "officialName"
+                ? ["name", "officialName"]
+                : [winner.fieldName];
+              await transaction.universityFieldClaim.updateMany({
+                where: {
+                  universityId: enrichment.universityId,
+                  entityType: "university",
+                  fieldName: { in: singletonFieldNames },
+                  isPreferred: true,
+                },
+                data: { isPreferred: false },
+              });
+              if (winner.id) {
+                await transaction.universityFieldClaim.update({
+                  where: { id: winner.id },
+                  data: { isPreferred: true },
+                });
+              }
+            }
+            await materializeApprovedEnrichment(transaction, enrichment.universityId, materializationClaims);
           }
         }
       }

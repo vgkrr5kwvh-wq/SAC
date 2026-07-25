@@ -93,3 +93,84 @@ test("verification status transitions preserve the manual lock", () => {
   assert.equal(nextVerificationStatus("OFFICIAL_VERIFIED", "manual"), "MANUALLY_VERIFIED");
   assert.equal(nextVerificationStatus("MANUALLY_VERIFIED", "official-failure"), "MANUALLY_VERIFIED");
 });
+
+test("singleton official HTTPS beats partner HTTP despite different entry routes", () => {
+  const partner = claim({
+    entityType: "university",
+    entityKey: "auburn-university",
+    fieldName: "officialWebsiteUrl",
+    value: "http://www.auburn.edu/",
+    normalizedValue: "http://www.auburn.edu/",
+    sourceName: "university-study",
+    sourceUrl: "https://universitystudy.com/study-destinations/",
+    authorityLevel: "UNIVERSITY_STUDY",
+    confidence: 78,
+    studyLevel: null,
+    entryRoute: null,
+  });
+  const official = claim({
+    entityType: "university",
+    entityKey: "auburn-university",
+    fieldName: "officialWebsiteUrl",
+    value: "https://auburn.edu/",
+    normalizedValue: "https://auburn.edu/",
+    sourceUrl: "https://auburn.edu/",
+    studyLevel: null,
+    entryRoute: "direct",
+  });
+  const groups = resolveSourceClaims([partner, official]);
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].preferred.value, "https://auburn.edu/");
+  assert.equal(groups[0].competing.length, 1);
+});
+
+test("singleton precedence uses authority before protocol and confidence", () => {
+  const officialHttp = claim({
+    entityType: "university",
+    fieldName: "officialWebsiteUrl",
+    value: "http://auburn.edu/",
+    normalizedValue: "http://auburn.edu/",
+    confidence: 60,
+    studyLevel: null,
+  });
+  const partnerHttps = claim({
+    entityType: "university",
+    fieldName: "officialWebsiteUrl",
+    value: "https://auburn.edu/",
+    normalizedValue: "https://auburn.edu/",
+    authorityLevel: "STUDIES_OVERSEAS",
+    sourceName: "studies-overseas",
+    confidence: 100,
+    studyLevel: null,
+  });
+  assert.equal(resolveSourceClaims([partnerHttps, officialHttp])[0].preferred.authorityLevel, "OFFICIAL_UNIVERSITY");
+});
+
+test("singleton website precedence uses HTTPS, confidence, recency, then stable identity", () => {
+  const base = claim({
+    entityType: "university",
+    fieldName: "officialWebsiteUrl",
+    value: "http://auburn.edu/",
+    normalizedValue: "http://auburn.edu/",
+    studyLevel: null,
+  });
+  const https = claim({ ...base, value: "https://auburn.edu/", normalizedValue: "https://auburn.edu/" });
+  assert.equal(resolveSourceClaims([base, https])[0].preferred.value, "https://auburn.edu/");
+
+  const confident = claim({ ...https, confidence: 96, sourceUrl: "https://auburn.edu/confident" });
+  assert.equal(resolveSourceClaims([https, confident])[0].preferred.confidence, 96);
+
+  const recent = claim({
+    ...confident,
+    observedAt: new Date("2026-07-26T00:00:00Z"),
+    sourceUrl: "https://auburn.edu/recent",
+  });
+  assert.equal(resolveSourceClaims([confident, recent])[0].preferred.sourceUrl, "https://auburn.edu/recent");
+
+  const stableA = claim({ ...recent, sourceUrl: "https://auburn.edu/a" });
+  const stableB = claim({ ...recent, sourceUrl: "https://auburn.edu/b" });
+  assert.equal(
+    resolveSourceClaims([stableB, stableA])[0].preferred.sourceUrl,
+    resolveSourceClaims([stableA, stableB])[0].preferred.sourceUrl,
+  );
+});

@@ -1,4 +1,8 @@
 import type { EnrichmentClaim } from "./types";
+import {
+  isUniversitySingletonClaim,
+  universitySingletonFieldKey,
+} from "./claim-precedence";
 
 export function normalizedClaimValue(value: unknown): string | null {
   if (value === null || value === undefined) return null;
@@ -8,6 +12,17 @@ export function normalizedClaimValue(value: unknown): string | null {
 }
 
 export function claimScopeKey(claim: EnrichmentClaim): string {
+  if (isUniversitySingletonClaim(claim)) {
+    return [
+      claim.entityType,
+      claim.entityKey,
+      "",
+      universitySingletonFieldKey(claim.fieldName),
+      "",
+      "",
+      "",
+    ].join("|");
+  }
   return [
     claim.entityType,
     claim.entityKey,
@@ -32,4 +47,3 @@ export function scopeDescription(claim: EnrichmentClaim): string {
     claim.academicYear,
   ].filter(Boolean).join(" · ");
 }
-
