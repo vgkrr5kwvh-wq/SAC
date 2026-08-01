@@ -17,6 +17,7 @@ import type {
   PaginatedResult,
   UniversityDetail,
   UniversityManagementResult,
+  UniversityManagementOverviewBase,
   UniversitySummary,
 } from "../dto/university.dto";
 import type {
@@ -29,7 +30,10 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
-type UniversityRepositoryClient = Pick<PrismaClient, "university">;
+type UniversityRepositoryClient = Pick<
+  PrismaClient,
+  "university" | "importRecord" | "universityFieldClaim" | "admissionRequirement" | "tuition" | "intake"
+>;
 
 function normalisePagination(page?: number, pageSize?: number) {
   const safePage = Number.isInteger(page) && Number(page) > 0
@@ -139,6 +143,97 @@ export class UniversityRepository {
     });
 
     return university ? mapUniversityToDetail(university) : null;
+  }
+
+  async getManagementOverviewById(
+    id: string,
+  ): Promise<UniversityManagementOverviewBase | null> {
+    const normalizedId = id.trim();
+    if (!normalizedId) return null;
+    const university = await this.client.university.findUnique({
+      where: { id: normalizedId },
+      include: {
+        ...universityDetailInclude,
+        sources: {
+          select: {
+            id: true,
+            sourceName: true,
+            sourceUniversityUrl: true,
+            isPrimary: true,
+            lastCheckedAt: true,
+            lastSuccessfulSyncAt: true,
+          },
+          orderBy: [{ isPrimary: "desc" }, { sourceName: "asc" }, { id: "asc" }],
+        },
+      },
+    });
+    if (!university) return null;
+
+    const [pendingRecords, pendingClaims, latestImport, latestReview, admissionRequirements, tuitionRecords, intakes, claims, history] = await Promise.all([
+      this.client.importRecord.count({
+        where: { universityId: normalizedId, status: { in: ["STAGED", "MANUAL_REVIEW"] } },
+      }),
+      this.client.universityFieldClaim.count({
+        where: { universityId: normalizedId, conflictStatus: "CONFLICT_REVIEW" },
+      }),
+      this.client.importRecord.findFirst({
+        where: { universityId: normalizedId },
+        select: {
+          status: true,
+          createdAt: true,
+          importJob: { select: { status: true, createdAt: true, sourceName: true } },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      }),
+      this.client.importRecord.findFirst({
+        where: { universityId: normalizedId, reviewedAt: { not: null } },
+        select: {
+          status: true,
+          reviewedAt: true,
+          reviewedBy: { select: { name: true, email: true } },
+        },
+        orderBy: [{ reviewedAt: "desc" }, { id: "desc" }],
+      }),
+      this.client.admissionRequirement.count({ where: { universityId: normalizedId } }),
+      this.client.tuition.count({ where: { universityId: normalizedId } }),
+      this.client.intake.count({ where: { universityId: normalizedId } }),
+      this.client.universityFieldClaim.count({ where: { universityId: normalizedId } }),
+      this.client.importRecord.count({ where: { universityId: normalizedId } }),
+    ]);
+    const { sources, ...universityPayload } = university;
+
+    return {
+      university: mapUniversityToDetail(universityPayload),
+      sources: sources.map((source) => ({
+        id: source.id,
+        name: source.sourceName,
+        url: source.sourceUniversityUrl,
+        isPrimary: source.isPrimary,
+        lastCheckedAt: source.lastCheckedAt,
+        lastSuccessfulSyncAt: source.lastSuccessfulSyncAt,
+      })),
+      pendingReviewItems: pendingRecords + pendingClaims,
+      latestImport: latestImport ? {
+        recordStatus: latestImport.status,
+        recordCreatedAt: latestImport.createdAt,
+        jobStatus: latestImport.importJob.status,
+        jobCreatedAt: latestImport.importJob.createdAt,
+        sourceName: latestImport.importJob.sourceName,
+      } : null,
+      latestReview: latestReview?.reviewedAt ? {
+        status: latestReview.status,
+        reviewedAt: latestReview.reviewedAt,
+        reviewer: latestReview.reviewedBy?.name ?? latestReview.reviewedBy?.email ?? "Former administrator",
+      } : null,
+      tabCounts: {
+        admissionRequirements,
+        tuitionRecords,
+        intakes,
+        claims,
+        sources: sources.length,
+        history,
+      },
+    };
   }
 
   async list(

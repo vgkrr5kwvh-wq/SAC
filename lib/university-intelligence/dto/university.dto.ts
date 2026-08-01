@@ -38,6 +38,54 @@ export type UniversityManagementResult = {
   countries: string[];
 };
 
+export type UniversityManagementSource = {
+  id: string;
+  name: string;
+  url: string;
+  isPrimary: boolean;
+  lastCheckedAt: Date | null;
+  lastSuccessfulSyncAt: Date | null;
+};
+
+export type UniversityManagementImportActivity = {
+  recordStatus: string;
+  recordCreatedAt: Date;
+  jobStatus: string;
+  jobCreatedAt: Date;
+  sourceName: string;
+};
+
+export type UniversityManagementReviewActivity = {
+  status: string;
+  reviewedAt: Date;
+  reviewer: string;
+};
+
+export type UniversityManagementOverviewBase = {
+  university: UniversityDetail;
+  sources: UniversityManagementSource[];
+  pendingReviewItems: number;
+  latestImport: UniversityManagementImportActivity | null;
+  latestReview: UniversityManagementReviewActivity | null;
+  tabCounts: {
+    admissionRequirements: number;
+    tuitionRecords: number;
+    intakes: number;
+    claims: number;
+    sources: number;
+    history: number;
+  };
+};
+
+export type UniversityManagementOverview = UniversityManagementOverviewBase & {
+  statistics: {
+    totalPrograms: number;
+    publishedPrograms: number;
+    totalScholarships: number;
+    pendingReviewItems: number;
+  };
+};
+
 export type UniversityDetail = UniversitySummary & {
   address: string | null;
   description: string | null;

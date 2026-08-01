@@ -102,7 +102,7 @@ export default async function UniversityManagementPage({ searchParams }: { searc
             <td data-label="Publication Status"><span className={`university-status is-${university.publicationStatus.toLowerCase()}`}>{label(university.publicationStatus)}</span></td>
             <td data-label="Verification Status"><span className="university-status">{label(university.verificationStatus)}</span></td>
             <td data-label="Updated">{formatUpdated(university.updatedAt)}</td>
-            <td data-label="Actions" className="university-management-actions">{university.publicationStatus === "PUBLISHED" ? <Link href={`/universities/${university.slug}`}>View Public</Link> : <span aria-disabled="true">View Public</span>}<span aria-disabled="true" title="Coming soon">Manage</span></td>
+            <td data-label="Actions" className="university-management-actions">{university.publicationStatus === "PUBLISHED" ? <Link href={`/universities/${university.slug}`}>View Public</Link> : <span aria-disabled="true">View Public</span>}<Link href={`/admin/university-data/universities/${university.id}`}>Manage</Link></td>
           </tr>) : <tr><td className="admin-empty-row" colSpan={7}>No universities have been imported yet.</td></tr>}</tbody>
         </table></div>
       </section>

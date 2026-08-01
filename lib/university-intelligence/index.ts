@@ -5,6 +5,10 @@ export {
   UniversitySearchService,
 } from "./services/university-search.service";
 export {
+  UniversityManagementService,
+  type UniversityManagementOverviewRepositories,
+} from "./services/university-management.service";
+export {
   ProgramRepository,
 } from "./repositories/program.repository";
 export {
@@ -51,6 +55,11 @@ export type {
   UniversityAdmissionRequirement,
   UniversityDetail,
   UniversityManagementResult,
+  UniversityManagementImportActivity,
+  UniversityManagementOverview,
+  UniversityManagementOverviewBase,
+  UniversityManagementReviewActivity,
+  UniversityManagementSource,
   UniversityManagementStatistics,
   UniversityManagementSummary,
   UniversityPublicLink,

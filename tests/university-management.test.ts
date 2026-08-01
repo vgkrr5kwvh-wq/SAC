@@ -39,12 +39,12 @@ test("builds and fetches the protected university management API request", async
   assert.equal(cookie, "session=test");
 });
 
-test("renders required university management controls and safe unavailable actions", () => {
+test("renders required university management controls and safe actions", () => {
   const page = readFileSync(new URL("../app/admin/university-data/universities/page.tsx", import.meta.url), "utf8");
   assert.match(page, /University Management/);
   assert.match(page, /No universities have been imported yet\./);
   assert.match(page, />Import University<\/button>/);
-  assert.match(page, /<span aria-disabled="true" title="Coming soon">Manage<\/span>/);
+  assert.match(page, /href=\{`\/admin\/university-data\/universities\/\$\{university\.id\}`\}>Manage/);
   assert.match(page, /university\.publicationStatus === "PUBLISHED"/);
   assert.doesNotMatch(page, /from "@\/lib\/prisma"/);
 });

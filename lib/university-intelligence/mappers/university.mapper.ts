@@ -4,6 +4,7 @@ import type {
   UniversityDetail,
   UniversitySummary,
 } from "../dto/university.dto";
+import { universityDisplayName } from "../university-name";
 
 export const universitySummaryInclude = {
   _count: {
@@ -88,7 +89,7 @@ export function mapUniversityToSummary(
 ): UniversitySummary {
   return {
     id: university.id,
-    name: university.name,
+    name: universityDisplayName(university.name),
     slug: university.slug,
     country: university.country,
     state: university.state,

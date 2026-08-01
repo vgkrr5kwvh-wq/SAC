@@ -5,6 +5,7 @@ import {
   canonicalOfficialUrlIdentity,
 } from "../official-site";
 import type { EnrichmentClaim, OfficialPageSnapshot } from "../types";
+import { universityDisplayName } from "@/lib/university-intelligence/university-name";
 
 type OfficialFact = {
   fieldName: string;
@@ -147,7 +148,7 @@ export function extractOfficialUniversityProfileClaims(
     ?? $("meta[name='university:banner']").attr("content");
   const finalWebsite = officialHttpsUrl(page.finalUrl, page.finalUrl, verifiedDomain);
   const facts: OfficialFact[] = [
-    { fieldName: "officialName", value: typeof organization?.name === "string" ? compact(organization.name) : compact($("h1").first().text()), evidence: null },
+    { fieldName: "officialName", value: universityDisplayName(typeof organization?.name === "string" ? compact(organization.name) : compact($("h1").first().text())), evidence: null },
     { fieldName: "officialWebsiteUrl", value: finalWebsite, evidence: page.finalUrl },
     { fieldName: "city", value: city || null, evidence: address },
     { fieldName: "address", value: address, evidence: address },
