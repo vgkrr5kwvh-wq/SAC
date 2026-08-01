@@ -35,7 +35,7 @@ const items = [
 
 const universityIntelligenceItems = [
   { href: "/admin/university-data", label: "Dashboard", exact: true },
-  { label: "Universities" },
+  { href: "/admin/university-data/universities", label: "Universities" },
   { label: "Programs" },
   { label: "Scholarships" },
   { label: "Admission Requirements" },

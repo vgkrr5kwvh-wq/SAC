@@ -21,3 +21,10 @@ export type UniversityListFilters = {
 export type UniversitySearchFilters = UniversityListFilters & {
   query: string;
 };
+
+export type UniversityManagementFilters = {
+  query?: string;
+  country?: string;
+  publicationStatus?: UniversityPublicationStatus;
+  verificationStatus?: UniversityVerificationStatus;
+};

@@ -1848,6 +1848,24 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
 .university-data-links span { color: var(--muted); font-size: .9rem; }
 .university-data-notice { padding: 16px 18px; border-left: 4px solid var(--blue); background: #f1f8fd; }
 .university-data-back { align-self: center; color: var(--blue-dark); font-weight: 750; }
+.university-management-page { display: grid; gap: 24px; }
+.university-management-page .admin-dashboard-heading .button:disabled { cursor: not-allowed; opacity: .55; }
+.university-management-statistics { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 14px; margin: 0; }
+.university-management-statistics > div { display: flex; min-height: 112px; flex-direction: column-reverse; justify-content: space-between; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--white); box-shadow: var(--shadow-sm); }
+.university-management-statistics dt { color: var(--muted); font-size: .78rem; font-weight: 700; }
+.university-management-statistics dd { margin: 0; color: var(--blue-dark); font-family: var(--font-heading),sans-serif; font-size: 2rem; font-weight: 750; }
+.university-management-filters { display: grid; grid-template-columns: minmax(220px,1.4fr) repeat(3,minmax(150px,1fr)) auto; align-items: end; gap: 14px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--white); box-shadow: var(--shadow-sm); }
+.university-management-filters label { min-width: 0; display: grid; gap: 7px; color: var(--ink); font-size: .76rem; font-weight: 750; }
+.university-management-filters input,.university-management-filters select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #b9c9d7; border-radius: 8px; color: var(--ink); background: #fff; font: inherit; }
+.university-management-filters input:focus,.university-management-filters select:focus { border-color: var(--blue); outline: 0; box-shadow: 0 0 0 3px rgba(2,132,232,.14); }
+.university-management-filter-actions,.university-management-actions { display: flex; align-items: center; gap: 8px; }
+.university-management-filter-actions .button { min-height: 44px; white-space: nowrap; }
+.university-status { display: inline-flex; padding: 5px 8px; border-radius: 999px; color: #475569; background: #f1f5f9; font-size: .7rem; font-weight: 750; white-space: nowrap; }
+.university-status.is-published { color: #047857; background: #ecfdf5; }
+.university-status.is-draft { color: #a16207; background: #fefce8; }
+.university-status.is-archived { color: #64748b; background: #f1f5f9; }
+.university-management-actions a,.university-management-actions span { padding: 6px 8px; border: 1px solid #bdd0df; border-radius: 7px; color: var(--blue-dark); background: #f7fafc; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.university-management-actions span[aria-disabled="true"] { color: #94a3b8; cursor: not-allowed; opacity: .72; }
 .university-review-list { display: grid; gap: 18px; }
 .university-review-card { display: grid; gap: 18px; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--white); box-shadow: var(--shadow-sm); }
 .university-review-card > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
@@ -1895,7 +1913,9 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
 .university-claim-groups a { color: var(--blue-dark); font-weight: 700; }
 
 @media (max-width: 800px) {
-  .university-data-metrics,.university-data-links,.university-review-card dl,.university-review-flags { grid-template-columns: 1fr; }
+  .university-data-metrics,.university-data-links,.university-management-statistics,.university-review-card dl,.university-review-flags { grid-template-columns: 1fr; }
+  .university-management-filters { grid-template-columns: 1fr; }
+  .university-management-filter-actions .button { flex: 1; }
   .university-review-controls { position: static; }
   .university-review-action-summary,.university-review-action-links { align-items: stretch; flex-direction: column; }
   .university-review-action-summary dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }

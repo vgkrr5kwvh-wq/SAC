@@ -16,10 +16,12 @@ import {
 import type {
   PaginatedResult,
   UniversityDetail,
+  UniversityManagementResult,
   UniversitySummary,
 } from "../dto/university.dto";
 import type {
   UniversityListFilters,
+  UniversityManagementFilters,
   UniversitySearchFilters,
 } from "../types/university";
 
@@ -251,6 +253,82 @@ export class UniversityRepository {
         totalItems,
         totalPages: Math.ceil(totalItems / pageSize),
       },
+    };
+  }
+
+  async listForManagement(
+    filters: UniversityManagementFilters = {},
+  ): Promise<UniversityManagementResult> {
+    const query = normalizedFilter(filters.query);
+    const country = normalizedFilter(filters.country);
+    const where: Prisma.UniversityWhereInput = {
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query } },
+              { city: { contains: query } },
+              { state: { contains: query } },
+              { country: { contains: query } },
+              { aliases: { some: { name: { contains: query } } } },
+            ],
+          }
+        : {}),
+      ...(country ? { country: { equals: country } } : {}),
+      ...(filters.publicationStatus
+        ? { publicationStatus: filters.publicationStatus }
+        : {}),
+      ...(filters.verificationStatus
+        ? { verificationStatus: filters.verificationStatus }
+        : {}),
+    };
+
+    const [universities, total, published, draft, pendingReview, officiallyVerified, countryRows] = await Promise.all([
+      this.client.university.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          country: true,
+          state: true,
+          city: true,
+          institutionType: true,
+          foundedYear: true,
+          officialWebsiteUrl: true,
+          logoUrl: true,
+          publicationStatus: true,
+          verificationStatus: true,
+          updatedAt: true,
+          programs: { select: { publicationStatus: true, active: true } },
+        },
+        orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
+      }),
+      this.client.university.count(),
+      this.client.university.count({ where: { publicationStatus: PrismaUniversityPublicationStatus.PUBLISHED } }),
+      this.client.university.count({ where: { publicationStatus: PrismaUniversityPublicationStatus.DRAFT } }),
+      this.client.university.count({ where: { importRecords: { some: { status: { in: ["STAGED", "MANUAL_REVIEW"] } } } } }),
+      this.client.university.count({ where: { verificationStatus: PrismaVerificationStatus.OFFICIAL_VERIFIED } }),
+      this.client.university.findMany({
+        where: { country: { not: null } },
+        select: { country: true },
+        distinct: ["country"],
+        orderBy: { country: "asc" },
+      }),
+    ]);
+
+    return {
+      universities: universities.map((university) => {
+        const { programs, ...summary } = university;
+        return {
+          ...summary,
+          programCount: programs.filter((program) =>
+            program.active && program.publicationStatus === PrismaUniversityPublicationStatus.PUBLISHED
+          ).length,
+          totalProgramCount: programs.length,
+        };
+      }),
+      statistics: { total, published, draft, pendingReview, officiallyVerified },
+      countries: countryRows.flatMap(({ country: value }) => value ? [value] : []),
     };
   }
 }

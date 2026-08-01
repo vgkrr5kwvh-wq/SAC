@@ -19,6 +19,25 @@ export type UniversitySummary = {
   programCount: number;
 };
 
+export type UniversityManagementSummary = UniversitySummary & {
+  totalProgramCount: number;
+  updatedAt: Date;
+};
+
+export type UniversityManagementStatistics = {
+  total: number;
+  published: number;
+  draft: number;
+  pendingReview: number;
+  officiallyVerified: number;
+};
+
+export type UniversityManagementResult = {
+  universities: UniversityManagementSummary[];
+  statistics: UniversityManagementStatistics;
+  countries: string[];
+};
+
 export type UniversityDetail = UniversitySummary & {
   address: string | null;
   description: string | null;

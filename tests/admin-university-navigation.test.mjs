@@ -9,11 +9,12 @@ test("shows available University Intelligence destinations", () => {
   assert.match(navigation, /href: "\/admin\/university-data", label: "Dashboard", exact: true/);
   assert.match(navigation, /href: "\/admin\/university-data\/review", label: "Review Queue"/);
   assert.match(navigation, /href: "\/admin\/university-data\/imports", label: "Import Jobs"/);
+  assert.match(navigation, /href: "\/admin\/university-data\/universities", label: "Universities"/);
   assert.match(navigation, /hasAdminPermission\(role, "manage_university_data"\)/);
 });
 
 test("marks unavailable University Intelligence destinations as coming soon", () => {
-  for (const label of ["Universities", "Programs", "Scholarships", "Admission Requirements", "Tuition", "Intakes"]) {
+  for (const label of ["Programs", "Scholarships", "Admission Requirements", "Tuition", "Intakes"]) {
     assert.match(navigation, new RegExp(`\\{ label: "${label}" \\}`));
   }
   assert.match(navigation, /aria-disabled="true"/);

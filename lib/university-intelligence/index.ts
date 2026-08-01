@@ -50,11 +50,15 @@ export type {
   PaginationMetadata,
   UniversityAdmissionRequirement,
   UniversityDetail,
+  UniversityManagementResult,
+  UniversityManagementStatistics,
+  UniversityManagementSummary,
   UniversityPublicLink,
   UniversitySummary,
 } from "./dto/university.dto";
 export type {
   UniversityListFilters,
+  UniversityManagementFilters,
   UniversityPublicationStatus,
   UniversitySearchFilters,
   UniversityVerificationStatus,
