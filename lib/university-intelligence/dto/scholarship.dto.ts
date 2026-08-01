@@ -59,3 +59,40 @@ export type ScholarshipDetail = ScholarshipCard & {
 export type ScholarshipSearchResult = ScholarshipCard & {
   matchedQuery: string;
 };
+
+export type ScholarshipManagementSummary = {
+  id: string;
+  name: string | null;
+  programId: string | null;
+  programName: string | null;
+  scope: "university-wide" | "program-specific";
+  availability: "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN";
+  amountText: string | null;
+  minimumAmount: number | null;
+  maximumAmount: number | null;
+  currency: string | null;
+  scholarshipType: string | null;
+  studyLevel: string | null;
+  deadlineText: string | null;
+  publicationStatus: UniversityPublicationStatus;
+  verificationStatus: UniversityVerificationStatus;
+  updatedAt: Date;
+};
+
+export type ScholarshipManagementResult = {
+  scholarships: ScholarshipManagementSummary[];
+  statistics: {
+    total: number;
+    published: number;
+    draft: number;
+    available: number;
+    unavailable: number;
+    unknown: number;
+    universityWide: number;
+    programSpecific: number;
+  };
+  options: {
+    scholarshipTypes: string[];
+    studyLevels: string[];
+  };
+};

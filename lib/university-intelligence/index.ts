@@ -14,6 +14,11 @@ export {
   type UniversityProgramManagementResult,
 } from "./services/program-management.service";
 export {
+  ScholarshipManagementService,
+  type ScholarshipManagementRepositories,
+  type UniversityScholarshipManagementResult,
+} from "./services/scholarship-management.service";
+export {
   ProgramRepository,
 } from "./repositories/program.repository";
 export {
@@ -24,6 +29,8 @@ export type {
   ScholarshipDetail,
   ScholarshipProgramSummary,
   ScholarshipSearchResult,
+  ScholarshipManagementResult,
+  ScholarshipManagementSummary,
   ScholarshipSummary,
   ScholarshipUniversitySummary,
 } from "./dto/scholarship.dto";
@@ -41,6 +48,9 @@ export type {
 } from "./dto/program.dto";
 export type {
   ScholarshipListFilters,
+  ScholarshipAvailabilityFilter,
+  ScholarshipManagementFilters,
+  ScholarshipScopeFilter,
   ScholarshipSearchFilters,
   ScholarshipSortBy,
   ScholarshipSortDirection,

@@ -5,6 +5,7 @@ import type {
   ScholarshipDetail,
   ScholarshipSearchResult,
   ScholarshipSummary,
+  ScholarshipManagementSummary,
 } from "../dto/scholarship.dto";
 
 export const scholarshipSelect = {
@@ -142,5 +143,29 @@ export function mapScholarshipToSearchResult(
   return {
     ...mapScholarshipToCard(scholarship),
     matchedQuery,
+  };
+}
+
+export function mapScholarshipToManagementSummary(
+  scholarship: ScholarshipRepositoryPayload,
+): ScholarshipManagementSummary {
+  const card = mapScholarshipToCard(scholarship);
+  return {
+    id: card.id,
+    name: card.name,
+    programId: card.programId,
+    programName: card.program?.name ?? null,
+    scope: card.scope,
+    availability: card.availability,
+    amountText: card.amountText,
+    minimumAmount: card.minimumAmount,
+    maximumAmount: card.maximumAmount,
+    currency: card.currency,
+    scholarshipType: card.scholarshipType,
+    studyLevel: card.studyLevel,
+    deadlineText: card.deadlineText,
+    publicationStatus: card.publicationStatus,
+    verificationStatus: card.verificationStatus,
+    updatedAt: scholarship.updatedAt,
   };
 }

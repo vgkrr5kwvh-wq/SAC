@@ -1,4 +1,5 @@
 import {
+  ScholarshipAvailability,
   UniversityPublicationStatus,
   type Prisma,
   type PrismaClient,
@@ -10,6 +11,7 @@ import type {
   ScholarshipCard,
   ScholarshipDetail,
   ScholarshipSearchResult,
+  ScholarshipManagementResult,
 } from "../dto/scholarship.dto";
 import type {
   PaginatedResult,
@@ -18,12 +20,14 @@ import {
   mapScholarshipToCard,
   mapScholarshipToDetail,
   mapScholarshipToSearchResult,
+  mapScholarshipToManagementSummary,
   parseScholarshipDeadline,
   scholarshipSelect,
   type ScholarshipRepositoryPayload,
 } from "../mappers/scholarship.mapper";
 import type {
   ScholarshipListFilters,
+  ScholarshipManagementFilters,
   ScholarshipSearchFilters,
   ScholarshipSortBy,
   ScholarshipSortDirection,
@@ -108,6 +112,7 @@ function buildWhere(
   const programId = normalizedString(filters.programId);
   const country = normalizedString(filters.country);
   const scholarshipType = normalizedString(filters.scholarshipType);
+  const studyLevel = normalizedString(filters.studyLevel);
   const minimumAward = normalizedMoney(filters.minimumAward);
   const maximumAward = normalizedMoney(filters.maximumAward);
   const publicationStatus = filters.publicationStatus
@@ -126,8 +131,29 @@ function buildWhere(
     ...(scholarshipType
       ? { scholarshipType: { equals: scholarshipType } }
       : {}),
+    ...(studyLevel ? { studyLevel: { equals: studyLevel } } : {}),
+    ...(filters.availability ? { scholarshipAvailable: filters.availability } : {}),
+    ...(filters.scope === "university-wide" ? { programId: null } : {}),
+    ...(filters.scope === "program-specific" ? { programId: { not: null } } : {}),
+    ...(filters.verificationStatus ? { verificationStatus: filters.verificationStatus } : {}),
     ...(rangeConditions.length ? { AND: rangeConditions } : {}),
   };
+}
+
+function withScholarshipSearch(
+  where: Prisma.ScholarshipWhereInput,
+  queryValue: string | undefined,
+): Prisma.ScholarshipWhereInput {
+  const query = normalizedString(queryValue);
+  return query ? { AND: [where, { OR: [
+    { name: { contains: query } },
+    { scholarshipType: { contains: query } },
+    { eligibilityText: { contains: query } },
+    { amountText: { contains: query } },
+    { studyLevel: { contains: query } },
+    { university: { name: { contains: query } } },
+    { program: { name: { contains: query } } },
+  ] }] } : where;
 }
 
 function buildOrderBy(
@@ -201,31 +227,51 @@ export class ScholarshipRepository {
     filters: ScholarshipSearchFilters,
   ): Promise<PaginatedResult<ScholarshipSearchResult>> {
     const query = filters.query.trim();
-    const baseWhere = buildWhere(filters);
-    const where: Prisma.ScholarshipWhereInput = query
-      ? {
-          AND: [
-            baseWhere,
-            {
-              OR: [
-                { name: { contains: query } },
-                { scholarshipType: { contains: query } },
-                { eligibilityText: { contains: query } },
-                { amountText: { contains: query } },
-                { studyLevel: { contains: query } },
-                { university: { name: { contains: query } } },
-                { program: { name: { contains: query } } },
-              ],
-            },
-          ],
-        }
-      : baseWhere;
+    const where = withScholarshipSearch(buildWhere(filters), query);
     const result = await this.query(where, filters);
     return {
       items: result.items.map((scholarship) =>
         mapScholarshipToSearchResult(scholarship, query)
       ),
       pagination: result.pagination,
+    };
+  }
+
+  async listForManagement(
+    universityId: string,
+    filters: ScholarshipManagementFilters = {},
+  ): Promise<ScholarshipManagementResult> {
+    const baseFilters: ScholarshipListFilters = {
+      universityId,
+      publishedOnly: false,
+      availability: filters.availability,
+      scholarshipType: filters.scholarshipType,
+      studyLevel: filters.studyLevel,
+      scope: filters.scope,
+      publicationStatus: filters.publicationStatus,
+      verificationStatus: filters.verificationStatus,
+    };
+    const where = withScholarshipSearch(buildWhere(baseFilters), filters.query);
+    const [scholarships, total, published, draft, available, unavailable, unknown, universityWide, programSpecific, typeRows, levelRows] = await Promise.all([
+      this.client.scholarship.findMany({ where, select: scholarshipSelect, orderBy: [{ name: "asc" }, { id: "asc" }], take: MAX_PAGE_SIZE }),
+      this.client.scholarship.count({ where: { universityId } }),
+      this.client.scholarship.count({ where: { universityId, publicationStatus: UniversityPublicationStatus.PUBLISHED } }),
+      this.client.scholarship.count({ where: { universityId, publicationStatus: UniversityPublicationStatus.DRAFT } }),
+      this.client.scholarship.count({ where: { universityId, scholarshipAvailable: ScholarshipAvailability.AVAILABLE } }),
+      this.client.scholarship.count({ where: { universityId, scholarshipAvailable: ScholarshipAvailability.UNAVAILABLE } }),
+      this.client.scholarship.count({ where: { universityId, scholarshipAvailable: ScholarshipAvailability.UNKNOWN } }),
+      this.client.scholarship.count({ where: { universityId, programId: null } }),
+      this.client.scholarship.count({ where: { universityId, programId: { not: null } } }),
+      this.client.scholarship.findMany({ where: { universityId, scholarshipType: { not: null } }, select: { scholarshipType: true }, distinct: ["scholarshipType"], orderBy: { scholarshipType: "asc" } }),
+      this.client.scholarship.findMany({ where: { universityId, studyLevel: { not: null } }, select: { studyLevel: true }, distinct: ["studyLevel"], orderBy: { studyLevel: "asc" } }),
+    ]);
+    return {
+      scholarships: scholarships.map(mapScholarshipToManagementSummary),
+      statistics: { total, published, draft, available, unavailable, unknown, universityWide, programSpecific },
+      options: {
+        scholarshipTypes: typeRows.flatMap(({ scholarshipType }) => scholarshipType ? [scholarshipType] : []),
+        studyLevels: levelRows.flatMap(({ studyLevel }) => studyLevel ? [studyLevel] : []),
+      },
     };
   }
 

@@ -1,6 +1,10 @@
 import type {
   UniversityPublicationStatus,
+  UniversityVerificationStatus,
 } from "./university";
+
+export type ScholarshipAvailabilityFilter = "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN";
+export type ScholarshipScopeFilter = "university-wide" | "program-specific";
 
 export type ScholarshipSortBy =
   | "name"
@@ -28,8 +32,22 @@ export type ScholarshipListFilters = {
   deadlineTo?: Date;
   currentlyOpen?: boolean;
   publishedOnly?: boolean;
+  availability?: ScholarshipAvailabilityFilter;
+  studyLevel?: string;
+  scope?: ScholarshipScopeFilter;
+  verificationStatus?: UniversityVerificationStatus;
 };
 
 export type ScholarshipSearchFilters = ScholarshipListFilters & {
   query: string;
+};
+
+export type ScholarshipManagementFilters = {
+  query?: string;
+  availability?: ScholarshipAvailabilityFilter;
+  scholarshipType?: string;
+  studyLevel?: string;
+  scope?: ScholarshipScopeFilter;
+  publicationStatus?: UniversityPublicationStatus;
+  verificationStatus?: UniversityVerificationStatus;
 };
