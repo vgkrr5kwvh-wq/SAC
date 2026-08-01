@@ -80,7 +80,8 @@ test("shows Overview active, implemented tabs enabled, and remaining future tabs
   assert.match(html, /aria-current="page">Overview/);
   assert.match(html, /href="\/admin\/university-data\/universities\/university-immutable-id\/programs"/);
   assert.match(html, /href="\/admin\/university-data\/universities\/university-immutable-id\/scholarships"/);
-  for (const tab of ["Admission Requirements", "Tuition", "Intakes", "Claims", "Sources", "History"]) {
+  assert.match(html, /href="\/admin\/university-data\/universities\/university-immutable-id\/requirements"/);
+  for (const tab of ["Tuition", "Intakes", "Claims", "Sources", "History"]) {
     assert.match(html, new RegExp(`aria-disabled="true"><b>${tab} \\(\\d+\\)</b><small>Coming soon`));
   }
 });

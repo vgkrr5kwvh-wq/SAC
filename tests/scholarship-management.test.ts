@@ -81,7 +81,8 @@ test("uses immutable detail links and keeps public actions disabled", () => {
 test("sidebar no longer presents Scholarships as coming soon", () => {
   const navigation = readFileSync(new URL("../app/admin/admin-navigation.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(navigation, /\{ label: "Scholarships" \}/);
-  for (const label of ["Admission Requirements", "Tuition", "Intakes"]) {
+  assert.match(navigation, /\{ label: "Admission Requirements", universityScoped: true \}/);
+  for (const label of ["Tuition", "Intakes"]) {
     assert.match(navigation, new RegExp(`\\{ label: "${label}" \\}`));
   }
 });

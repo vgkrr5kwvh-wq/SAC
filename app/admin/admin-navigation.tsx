@@ -36,16 +36,22 @@ const items = [
 const universityIntelligenceItems = [
   { href: "/admin/university-data", label: "Dashboard", exact: true },
   { href: "/admin/university-data/universities", label: "Universities" },
-  { label: "Admission Requirements" },
+  { label: "Admission Requirements", universityScoped: true },
   { label: "Tuition" },
   { label: "Intakes" },
   { href: "/admin/university-data/review", label: "Review Queue" },
   { href: "/admin/university-data/imports", label: "Import Jobs" },
-] satisfies Array<{ href?: string; label: string; exact?: boolean }>;
+] satisfies Array<{ href?: string; label: string; exact?: boolean; universityScoped?: boolean }>;
+
+export function universityRequirementsHref(pathname: string) {
+  const match = pathname.match(/^\/admin\/university-data\/universities\/([A-Za-z0-9_-]{1,30})(?:\/|$)/);
+  return match ? `/admin/university-data/universities/${match[1]}/requirements` : null;
+}
 
 export default function AdminNavigation({ email, role }: { email: string; role: AdminRole }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const requirementsHref = universityRequirementsHref(pathname);
 
   return <>
     <button className="admin-mobile-menu" type="button" aria-expanded={open} aria-controls="admin-sidebar" onClick={() => setOpen((value) => !value)}>
@@ -68,12 +74,14 @@ export default function AdminNavigation({ email, role }: { email: string; role: 
         {hasAdminPermission(role, "manage_university_data") ? <>
           <span className="admin-nav-label admin-nav-section-label">University Intelligence</span>
           {universityIntelligenceItems.map((item) => {
-            if (!item.href) {
+            const itemHref = item.universityScoped ? requirementsHref : item.href;
+            if (item.universityScoped && !itemHref) return null;
+            if (!itemHref) {
               return <span className="admin-nav-unavailable" key={item.label} aria-disabled="true"><IoSchoolOutline aria-hidden="true"/><span>{item.label}<small>Coming soon</small></span></span>;
             }
 
-            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-            return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}><IoSchoolOutline aria-hidden="true"/><span>{item.label}</span></Link>;
+            const active = item.exact ? pathname === itemHref : pathname.startsWith(itemHref);
+            return <Link key={itemHref} href={itemHref} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}><IoSchoolOutline aria-hidden="true"/><span>{item.label}</span></Link>;
           })}
         </> : null}
       </nav>

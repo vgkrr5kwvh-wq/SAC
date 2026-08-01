@@ -1,6 +1,7 @@
 export {
   ScholarshipRepository,
 } from "./repositories/scholarship.repository";
+export { AdmissionRequirementRepository } from "./repositories/admission-requirement.repository";
 export {
   UniversitySearchService,
 } from "./services/university-search.service";
@@ -19,6 +20,11 @@ export {
   type UniversityScholarshipManagementResult,
 } from "./services/scholarship-management.service";
 export {
+  AdmissionRequirementManagementService,
+  type AdmissionRequirementManagementRepositories,
+  type UniversityAdmissionRequirementManagementResult,
+} from "./services/admission-requirement-management.service";
+export {
   ProgramRepository,
 } from "./repositories/program.repository";
 export {
@@ -34,6 +40,10 @@ export type {
   ScholarshipSummary,
   ScholarshipUniversitySummary,
 } from "./dto/scholarship.dto";
+export type {
+  AdmissionRequirementManagementResult,
+  AdmissionRequirementManagementSummary,
+} from "./dto/admission-requirement.dto";
 export type {
   ProgramCard,
   ProgramDetail,
@@ -55,6 +65,10 @@ export type {
   ScholarshipSortBy,
   ScholarshipSortDirection,
 } from "./types/scholarship";
+export type {
+  AdmissionRequirementManagementFilters,
+  AdmissionRequirementScope,
+} from "./types/admission-requirement";
 export type {
   SearchEverythingFilters,
   SearchEverythingResult,
