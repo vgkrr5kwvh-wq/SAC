@@ -1872,8 +1872,10 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
 .university-management-detail-header p { margin: 0; color: var(--muted); }
 .university-detail-admin-status { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .university-management-tabs { display: flex; gap: 7px; padding: 8px; overflow-x: auto; border: 1px solid var(--line); border-radius: 11px; background: #fff; box-shadow: var(--shadow-sm); }
-.university-management-tabs > span { flex: 0 0 auto; display: grid; gap: 1px; padding: 8px 11px; border-radius: 8px; color: #94a3b8; font-size: .76rem; font-weight: 750; }
+.university-management-tabs > span,.university-management-tabs > a { flex: 0 0 auto; display: grid; gap: 1px; padding: 8px 11px; border-radius: 8px; color: #94a3b8; font-size: .76rem; font-weight: 750; text-decoration: none; }
 .university-management-tabs > span[aria-current="page"] { color: #fff; background: #2563eb; }
+.university-management-tabs > a { align-content: center; color: var(--blue-dark); background: #eff6ff; }
+.university-management-tabs > a:hover { background: #dbeafe; }
 .university-management-tabs > span[aria-disabled="true"] { cursor: not-allowed; }
 .university-management-tabs small { font-size: .56rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .university-management-detail-statistics { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 14px; margin: 0; }
@@ -1913,6 +1915,27 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
 .university-management-state h1,.university-management-state p { margin: 0; }
 .university-management-state p { color: var(--muted); }
 .university-management-state > div { display: flex; gap: 10px; }
+.program-management-page { display: grid; gap: 24px; }
+.program-management-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.program-management-header h1 { margin: 4px 0 7px; font-size: clamp(1.8rem,3vw,2.35rem); }
+.program-management-header p { margin: 0; color: var(--muted); }
+.program-management-filters { display: grid; grid-template-columns: minmax(200px,1.3fr) repeat(4,minmax(135px,1fr)); gap: 14px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; box-shadow: var(--shadow-sm); }
+.program-management-filters label { min-width: 0; display: grid; gap: 7px; color: var(--ink); font-size: .76rem; font-weight: 750; }
+.program-management-filters input,.program-management-filters select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #b9c9d7; border-radius: 8px; color: var(--ink); background: #fff; font: inherit; }
+.program-management-filters input:focus,.program-management-filters select:focus { border-color: var(--blue); outline: 0; box-shadow: 0 0 0 3px rgba(2,132,232,.14); }
+.program-management-filter-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; }
+.program-management-table { min-width: 1520px; }
+.program-management-title { display: -webkit-box; max-width: 280px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; line-height: 1.35; }
+.program-management-degree { white-space: nowrap; }
+.program-management-placeholder { color: #94a3b8 !important; }
+.program-management-intakes { display: grid; gap: 2px; }
+.program-management-intakes strong { color: var(--ink); }
+.program-management-intakes small { color: var(--muted); font-size: .68rem; white-space: nowrap; }
+.program-management-table th:last-child,.program-management-actions { position: sticky; z-index: 2; right: 0; background: #fff; box-shadow: -8px 0 12px rgba(15,23,42,.05); }
+.program-management-table th:last-child { z-index: 3; background: #f8fafc; }
+.program-management-actions { min-width: 190px; display: flex; gap: 7px; }
+.program-management-actions a,.program-management-actions span { display: inline-flex; padding: 6px 8px; border: 1px solid #bdd0df; border-radius: 7px; color: var(--blue-dark); background: #f7fafc; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.program-management-actions span[aria-disabled="true"] { color: #94a3b8; cursor: not-allowed; opacity: .72; }
 .university-review-list { display: grid; gap: 18px; }
 .university-review-card { display: grid; gap: 18px; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--white); box-shadow: var(--shadow-sm); }
 .university-review-card > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
@@ -1964,6 +1987,11 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
   .university-management-filters { grid-template-columns: 1fr; }
   .university-management-filter-actions .button { flex: 1; }
   .university-management-detail-header { align-items: flex-start; flex-direction: column; }
+  .program-management-header { align-items: flex-start; flex-direction: column; }
+  .program-management-filters { grid-template-columns: 1fr; }
+  .program-management-filter-actions { grid-column: auto; }
+  .program-management-table th:last-child,.program-management-actions { position: static; box-shadow: none; }
+  .program-management-title { max-width: none; }
   .university-management-detail-statistics,.university-management-resources > div:last-child,.university-management-activity > dl { grid-template-columns: 1fr; }
   .university-management-profile-groups,.university-management-profile-groups > section > dl,.university-management-images { grid-template-columns: 1fr; }
   .university-management-profile-groups > section.is-wide,.university-management-profile-groups > section > dl > div.is-wide { grid-column: auto; }

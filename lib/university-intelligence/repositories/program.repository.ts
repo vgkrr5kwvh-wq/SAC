@@ -14,16 +14,19 @@ import type {
   ProgramCard,
   ProgramDetail,
   ProgramSearchResult,
+  ProgramManagementResult,
 } from "../dto/program.dto";
 import {
   mapProgramToCard,
   mapProgramToDetail,
   mapProgramToSearchResult,
+  mapProgramToManagementSummary,
   programSelect,
 } from "../mappers/program.mapper";
 import type {
   ProgramIdentityOptions,
   ProgramListFilters,
+  ProgramManagementFilters,
   ProgramSearchFilters,
   ProgramSortBy,
   SortDirection,
@@ -33,7 +36,7 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
-type ProgramRepositoryClient = Pick<PrismaClient, "program">;
+type ProgramRepositoryClient = Pick<PrismaClient, "program" | "intake">;
 
 function normalizedString(value: string | undefined): string | undefined {
   const normalized = value?.trim();
@@ -79,8 +82,10 @@ function buildWhere(filters: ProgramListFilters): Prisma.ProgramWhereInput {
     : undefined;
 
   return {
-    ...(filters.publishedOnly !== false
-      ? { publicationStatus: UniversityPublicationStatus.PUBLISHED }
+    ...(filters.publicationStatus
+      ? { publicationStatus: filters.publicationStatus }
+      : filters.publishedOnly !== false
+        ? { publicationStatus: UniversityPublicationStatus.PUBLISHED }
       : {}),
     ...(universityId ? { universityId } : {}),
     ...(country
@@ -111,6 +116,23 @@ function buildWhere(filters: ProgramListFilters): Prisma.ProgramWhereInput {
       : {}),
     ...(tuitionRange ? { tuitionRecords: { some: tuitionRange } } : {}),
   };
+}
+
+function withProgramSearch(
+  where: Prisma.ProgramWhereInput,
+  queryValue: string | undefined,
+): Prisma.ProgramWhereInput {
+  const query = normalizedString(queryValue);
+  return query ? {
+    AND: [where, { OR: [
+      { name: { contains: query } },
+      { degreeLevel: { contains: query } },
+      { studyLevel: { contains: query } },
+      { subjectArea: { contains: query } },
+      { department: { contains: query } },
+      { university: { name: { contains: query } } },
+    ] }],
+  } : where;
 }
 
 function buildOrderBy(
@@ -179,30 +201,60 @@ export class ProgramRepository {
     filters: ProgramSearchFilters,
   ): Promise<PaginatedResult<ProgramSearchResult>> {
     const query = filters.query.trim();
-    const baseWhere = buildWhere(filters);
-    const where: Prisma.ProgramWhereInput = query
-      ? {
-          AND: [
-            baseWhere,
-            {
-              OR: [
-                { name: { contains: query } },
-                { degreeLevel: { contains: query } },
-                { studyLevel: { contains: query } },
-                { subjectArea: { contains: query } },
-                { department: { contains: query } },
-                { university: { name: { contains: query } } },
-              ],
-            },
-          ],
-        }
-      : baseWhere;
+    const where = withProgramSearch(buildWhere(filters), query);
     const result = await this.query(where, filters);
     return {
       items: result.items.map((program) =>
         mapProgramToSearchResult(program, query)
       ),
       pagination: result.pagination,
+    };
+  }
+
+  async listForManagement(
+    universityId: string,
+    filters: ProgramManagementFilters = {},
+  ): Promise<ProgramManagementResult> {
+    const baseFilters: ProgramListFilters = {
+      universityId,
+      degreeLevel: filters.degreeLevel,
+      campus: filters.campus,
+      intake: filters.intake,
+      publicationStatus: filters.publicationStatus,
+      publishedOnly: false,
+    };
+    const where = withProgramSearch(buildWhere(baseFilters), filters.query);
+    const universityWhere = { universityId } satisfies Prisma.ProgramWhereInput;
+    const undergraduateWhere = { universityId, OR: [
+      { studyLevel: { contains: "undergraduate" } },
+      { degreeLevel: { contains: "bachelor" } },
+    ] } satisfies Prisma.ProgramWhereInput;
+    const graduateWhere = { universityId, OR: [
+      { studyLevel: { contains: "graduate" } },
+      { degreeLevel: { contains: "master" } },
+      { degreeLevel: { contains: "doctoral" } },
+      { degreeLevel: { contains: "phd" } },
+    ] } satisfies Prisma.ProgramWhereInput;
+
+    const [programs, total, published, draft, undergraduate, graduate, degreeRows, campusRows, intakeRows] = await Promise.all([
+      this.client.program.findMany({ where, select: programSelect, orderBy: [{ name: "asc" }, { id: "asc" }], take: MAX_PAGE_SIZE }),
+      this.client.program.count({ where: universityWhere }),
+      this.client.program.count({ where: { universityId, publicationStatus: UniversityPublicationStatus.PUBLISHED } }),
+      this.client.program.count({ where: { universityId, publicationStatus: UniversityPublicationStatus.DRAFT } }),
+      this.client.program.count({ where: undergraduateWhere }),
+      this.client.program.count({ where: graduateWhere }),
+      this.client.program.findMany({ where: { universityId, degreeLevel: { not: null } }, select: { degreeLevel: true }, distinct: ["degreeLevel"], orderBy: { degreeLevel: "asc" } }),
+      this.client.program.findMany({ where: { universityId, campus: { not: null } }, select: { campus: true }, distinct: ["campus"], orderBy: { campus: "asc" } }),
+      this.client.intake.findMany({ where: { universityId }, select: { term: true }, distinct: ["term"], orderBy: { term: "asc" } }),
+    ]);
+    return {
+      programs: programs.map(mapProgramToManagementSummary),
+      statistics: { total, published, draft, undergraduate, graduate },
+      options: {
+        degreeLevels: degreeRows.flatMap(({ degreeLevel }) => degreeLevel ? [degreeLevel] : []),
+        campuses: campusRows.flatMap(({ campus }) => campus ? [campus] : []),
+        intakes: intakeRows.map(({ term }) => term),
+      },
     };
   }
 

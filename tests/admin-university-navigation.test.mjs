@@ -14,9 +14,10 @@ test("shows available University Intelligence destinations", () => {
 });
 
 test("marks unavailable University Intelligence destinations as coming soon", () => {
-  for (const label of ["Programs", "Scholarships", "Admission Requirements", "Tuition", "Intakes"]) {
+  for (const label of ["Scholarships", "Admission Requirements", "Tuition", "Intakes"]) {
     assert.match(navigation, new RegExp(`\\{ label: "${label}" \\}`));
   }
   assert.match(navigation, /aria-disabled="true"/);
   assert.match(navigation, /<small>Coming soon<\/small>/);
+  assert.doesNotMatch(navigation, /\{ label: "Programs" \}/);
 });

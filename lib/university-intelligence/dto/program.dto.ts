@@ -86,3 +86,35 @@ export type ProgramDetail = ProgramCard & {
 export type ProgramSearchResult = ProgramCard & {
   matchedQuery: string;
 };
+
+export type ProgramManagementSummary = {
+  id: string;
+  name: string;
+  degreeLevel: string | null;
+  studyLevel: string | null;
+  department: string | null;
+  campus: string | null;
+  durationText: string | null;
+  startingTuition: number | null;
+  tuitionCurrency: string | null;
+  intakeCount: number;
+  publicationStatus: UniversityPublicationStatus;
+  verificationStatus: UniversityVerificationStatus;
+  updatedAt: Date;
+};
+
+export type ProgramManagementResult = {
+  programs: ProgramManagementSummary[];
+  statistics: {
+    total: number;
+    published: number;
+    draft: number;
+    undergraduate: number;
+    graduate: number;
+  };
+  options: {
+    degreeLevels: string[];
+    campuses: string[];
+    intakes: string[];
+  };
+};

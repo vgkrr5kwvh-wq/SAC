@@ -9,6 +9,11 @@ export {
   type UniversityManagementOverviewRepositories,
 } from "./services/university-management.service";
 export {
+  ProgramManagementService,
+  type ProgramManagementRepositories,
+  type UniversityProgramManagementResult,
+} from "./services/program-management.service";
+export {
   ProgramRepository,
 } from "./repositories/program.repository";
 export {
@@ -28,6 +33,8 @@ export type {
   ProgramIntake,
   ProgramScholarship,
   ProgramSearchResult,
+  ProgramManagementResult,
+  ProgramManagementSummary,
   ProgramSummary,
   ProgramTuition,
   ProgramUniversitySummary,
@@ -45,6 +52,7 @@ export type {
 export type {
   ProgramIdentityOptions,
   ProgramListFilters,
+  ProgramManagementFilters,
   ProgramSearchFilters,
   ProgramSortBy,
   SortDirection,
@@ -56,6 +64,7 @@ export type {
   UniversityDetail,
   UniversityManagementResult,
   UniversityManagementImportActivity,
+  UniversityManagementIdentity,
   UniversityManagementOverview,
   UniversityManagementOverviewBase,
   UniversityManagementReviewActivity,

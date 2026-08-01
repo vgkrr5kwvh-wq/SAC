@@ -32,6 +32,11 @@ export type UniversityManagementStatistics = {
   officiallyVerified: number;
 };
 
+export type UniversityManagementIdentity = {
+  id: string;
+  name: string;
+};
+
 export type UniversityManagementResult = {
   universities: UniversityManagementSummary[];
   statistics: UniversityManagementStatistics;

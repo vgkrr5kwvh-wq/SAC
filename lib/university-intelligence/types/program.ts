@@ -21,6 +21,7 @@ export type ProgramListFilters = {
   tuitionMin?: number;
   tuitionMax?: number;
   publishedOnly?: boolean;
+  publicationStatus?: import("./university").UniversityPublicationStatus;
 };
 
 export type ProgramSearchFilters = ProgramListFilters & {
@@ -30,4 +31,12 @@ export type ProgramSearchFilters = ProgramListFilters & {
 export type ProgramIdentityOptions = {
   universityId?: string;
   publishedOnly?: boolean;
+};
+
+export type ProgramManagementFilters = {
+  query?: string;
+  degreeLevel?: string;
+  campus?: string;
+  intake?: string;
+  publicationStatus?: import("./university").UniversityPublicationStatus;
 };

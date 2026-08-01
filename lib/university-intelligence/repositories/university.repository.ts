@@ -18,6 +18,7 @@ import type {
   UniversityDetail,
   UniversityManagementResult,
   UniversityManagementOverviewBase,
+  UniversityManagementIdentity,
   UniversitySummary,
 } from "../dto/university.dto";
 import type {
@@ -25,6 +26,7 @@ import type {
   UniversityManagementFilters,
   UniversitySearchFilters,
 } from "../types/university";
+import { universityDisplayName } from "../university-name";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
@@ -143,6 +145,16 @@ export class UniversityRepository {
     });
 
     return university ? mapUniversityToDetail(university) : null;
+  }
+
+  async getManagementIdentityById(id: string): Promise<UniversityManagementIdentity | null> {
+    const normalizedId = id.trim();
+    if (!normalizedId) return null;
+    const university = await this.client.university.findUnique({
+      where: { id: normalizedId },
+      select: { id: true, name: true },
+    });
+    return university ? { ...university, name: universityDisplayName(university.name) } : null;
   }
 
   async getManagementOverviewById(

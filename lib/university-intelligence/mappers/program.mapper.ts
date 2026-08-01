@@ -4,6 +4,7 @@ import type {
   ProgramCard,
   ProgramDetail,
   ProgramSearchResult,
+  ProgramManagementSummary,
   ProgramSummary,
 } from "../dto/program.dto";
 
@@ -188,5 +189,26 @@ export function mapProgramToSearchResult(
   return {
     ...mapProgramToCard(program),
     matchedQuery,
+  };
+}
+
+export function mapProgramToManagementSummary(
+  program: ProgramRepositoryPayload,
+): ProgramManagementSummary {
+  const card = mapProgramToCard(program);
+  return {
+    id: card.id,
+    name: card.name,
+    degreeLevel: card.degreeLevel,
+    studyLevel: card.studyLevel,
+    department: program.department,
+    campus: card.campus,
+    durationText: card.durationText,
+    startingTuition: card.startingTuition,
+    tuitionCurrency: card.tuitionCurrency,
+    intakeCount: program.intakes.length,
+    publicationStatus: card.publicationStatus,
+    verificationStatus: card.verificationStatus,
+    updatedAt: program.updatedAt,
   };
 }
