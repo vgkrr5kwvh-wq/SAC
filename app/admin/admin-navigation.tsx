@@ -29,10 +29,21 @@ const items = [
   { href: "/admin/blog", label: "Blog", exact: true, icon: IoAlbumsOutline, permission: "manage_blog" },
   { href: "/admin/blog/categories", label: "Categories", icon: IoPricetagsOutline, permission: "manage_categories" },
   { href: "/admin/media", label: "Media Library", icon: IoImagesOutline, permission: "manage_media" },
-  { href: "/admin/university-data", label: "University Data", icon: IoSchoolOutline, permission: "manage_university_data" },
   { href: "/admin/users", label: "Users", icon: IoSettingsOutline, permission: "manage_users" },
   { href: "/admin/profile", label: "Profile", icon: IoPersonCircleOutline, permission: "manage_profile" },
 ] satisfies Array<{ href: string; label: string; exact?: boolean; icon: typeof IoGridOutline; permission: AdminPermission }>;
+
+const universityIntelligenceItems = [
+  { href: "/admin/university-data", label: "Dashboard", exact: true },
+  { label: "Universities" },
+  { label: "Programs" },
+  { label: "Scholarships" },
+  { label: "Admission Requirements" },
+  { label: "Tuition" },
+  { label: "Intakes" },
+  { href: "/admin/university-data/review", label: "Review Queue" },
+  { href: "/admin/university-data/imports", label: "Import Jobs" },
+] satisfies Array<{ href?: string; label: string; exact?: boolean }>;
 
 export default function AdminNavigation({ email, role }: { email: string; role: AdminRole }) {
   const pathname = usePathname();
@@ -56,6 +67,17 @@ export default function AdminNavigation({ email, role }: { email: string; role: 
           const Icon = item.icon;
           return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}><Icon aria-hidden="true"/><span>{item.label}</span></Link>;
         })}
+        {hasAdminPermission(role, "manage_university_data") ? <>
+          <span className="admin-nav-label admin-nav-section-label">University Intelligence</span>
+          {universityIntelligenceItems.map((item) => {
+            if (!item.href) {
+              return <span className="admin-nav-unavailable" key={item.label} aria-disabled="true"><IoSchoolOutline aria-hidden="true"/><span>{item.label}<small>Coming soon</small></span></span>;
+            }
+
+            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+            return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}><IoSchoolOutline aria-hidden="true"/><span>{item.label}</span></Link>;
+          })}
+        </> : null}
       </nav>
       <div className="admin-sidebar-account">
         <span className="admin-account-avatar">A</span>
