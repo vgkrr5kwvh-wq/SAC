@@ -1,0 +1,1 @@
+"use client"; export default function ErrorState({reset}:{reset:()=>void}){return <div className="tuition-management-state" role="alert"><h1>Tuition unavailable</h1><p>Tuition records could not be loaded safely.</p><button className="button primary" type="button" onClick={reset}>Try again</button></div>;}

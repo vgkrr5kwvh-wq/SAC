@@ -80,7 +80,7 @@ test("includes hover, active, sticky, and responsive presentation hooks", () => 
   assert.match(css, /requirement-management-statistics > div\.is-active/);
   assert.match(css, /requirement-statistic-link[^}]*cursor: pointer/);
   assert.match(css, /requirement-management-table thead th[^}]*position: sticky/);
-  assert.match(css, /requirement-management-statistics,.requirement-management-filters \{ grid-template-columns: 1fr; \}/);
+  assert.match(css, /requirement-management-statistics,.requirement-management-filters[^\{]*\{ grid-template-columns: 1fr; \}/);
   assert.match(css, /requirement-management-page \{ min-width: 0/);
 });
 

@@ -1987,6 +1987,27 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
 .requirement-empty-state strong { display: block; color: var(--ink); font-family: var(--font-heading),sans-serif; font-size: 1.1rem; }
 .requirement-empty-state p { margin: 8px 0 0; color: #526174; font-weight: 500; }
 .requirement-empty-state small { display: block; margin-top: 7px; color: var(--muted); font-weight: 500; }
+.tuition-management-page { min-width: 0; display: grid; gap: 24px; }
+.tuition-management-state { min-height: 320px; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; }
+.tuition-management-statistics { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.tuition-management-filters { display: grid; grid-template-columns: minmax(210px,1.35fr) repeat(3,minmax(145px,1fr)); gap: 14px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; box-shadow: var(--shadow-sm); }
+.tuition-management-filters label { min-width: 0; display: grid; gap: 7px; color: var(--ink); font-size: .76rem; font-weight: 750; }
+.tuition-management-filters input,.tuition-management-filters select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #b9c9d7; border-radius: 8px; color: var(--ink); background: #fff; font: inherit; }
+.tuition-management-filters input:focus,.tuition-management-filters select:focus { border-color: var(--blue); outline: 0; box-shadow: 0 0 0 3px rgba(2,132,232,.14); }
+.tuition-management-filter-actions { grid-column: 1/-1; display: flex; justify-content: flex-end; gap: 10px; }
+.tuition-management-table { min-width: 1900px; }
+.tuition-management-table thead th { position: sticky; z-index: 2; top: 0; background: #f8fafc; }
+.tuition-management-table th,.tuition-scope,.tuition-management-table .university-status,.tuition-nowrap { white-space: nowrap; }
+.tuition-scope { display: inline-flex; padding: 5px 8px; border-radius: 999px; color: #475569; background: #f1f5f9; font-size: .7rem; font-weight: 750; }
+.tuition-placeholder { color: #94a3b8 !important; }
+.tuition-management-table th:last-child,.tuition-management-actions { position: sticky; z-index: 3; right: 0; background: #fff; box-shadow: -8px 0 12px rgba(15,23,42,.05); }
+.tuition-management-table th:last-child { z-index: 4; top: 0; background: #f8fafc; }
+.tuition-management-actions { min-width: 190px; display: flex; gap: 7px; }
+.tuition-management-actions a,.tuition-management-actions span { display: inline-flex; padding: 6px 8px; border: 1px solid #bdd0df; border-radius: 7px; color: var(--blue-dark); background: #f7fafc; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.tuition-management-actions span[aria-disabled="true"] { color: #94a3b8; cursor: not-allowed; opacity: .72; }
+.tuition-empty-state { padding: 48px 24px !important; text-align: center; }
+.tuition-empty-state strong { display: block; color: var(--ink); font-family: var(--font-heading),sans-serif; font-size: 1.05rem; }
+.tuition-empty-state p { margin: 8px 0 0; color: var(--muted); font-weight: 500; }
 .university-review-list { display: grid; gap: 18px; }
 .university-review-card { display: grid; gap: 18px; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--white); box-shadow: var(--shadow-sm); }
 .university-review-card > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
@@ -2041,11 +2062,13 @@ main#top > .location-section .location-heading { margin-bottom: 42px; }
   .program-management-header { align-items: flex-start; flex-direction: column; }
   .program-management-filters { grid-template-columns: 1fr; }
   .program-management-filter-actions { grid-column: auto; }
-  .scholarship-management-statistics,.scholarship-management-filters,.requirement-management-statistics,.requirement-management-filters { grid-template-columns: 1fr; }
+  .scholarship-management-statistics,.scholarship-management-filters,.requirement-management-statistics,.requirement-management-filters,.tuition-management-statistics,.tuition-management-filters { grid-template-columns: 1fr; }
   .scholarship-management-filter-actions { grid-column: auto; }
   .requirement-management-filter-actions { grid-column: auto; }
+  .tuition-management-filter-actions { grid-column: auto; }
   .scholarship-management-table th:last-child,.scholarship-management-actions { position: static; box-shadow: none; }
   .requirement-management-table th:last-child,.requirement-management-actions { position: static; box-shadow: none; }
+  .tuition-management-table th:last-child,.tuition-management-actions { position: static; box-shadow: none; }
   .program-management-table th:last-child,.program-management-actions { position: static; box-shadow: none; }
   .program-management-title { max-width: none; }
   .university-management-detail-statistics,.university-management-resources > div:last-child,.university-management-activity > dl { grid-template-columns: 1fr; }

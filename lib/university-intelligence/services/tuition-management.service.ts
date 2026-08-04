@@ -1,0 +1,4 @@
+import type { TuitionManagementFilters, TuitionManagementResult, TuitionRepository, UniversityManagementIdentity, UniversityRepository } from "@/lib/university-intelligence";
+export type TuitionManagementRepositories = { universities: Pick<UniversityRepository,"getManagementIdentityById">; tuition: Pick<TuitionRepository,"listForManagement"> };
+export type UniversityTuitionManagementResult = { university: UniversityManagementIdentity; result: TuitionManagementResult };
+export class TuitionManagementService { constructor(private readonly repositories: TuitionManagementRepositories) {} async listUniversityTuition(universityId: string, filters: TuitionManagementFilters = {}): Promise<UniversityTuitionManagementResult | null> { const university = await this.repositories.universities.getManagementIdentityById(universityId); return university ? { university, result: await this.repositories.tuition.listForManagement(university.id, filters) } : null; } }
