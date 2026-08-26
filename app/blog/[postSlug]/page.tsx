@@ -7,18 +7,37 @@ import MarkdownContent from "@/components/blog/markdown-content";
 import { blogDateFormatter } from "@/lib/blog/dates";
 import { formatReadingTime } from "@/lib/blog/reading-time";
 import { getPublicBlogPost } from "@/lib/blog/queries";
+import { buildBrandedTitle, normalizeDuplicateSocialTitle } from "@/lib/seo/title";
 
 const siteUrl = "https://selfapplycenter.com";
 const findPublicPost = cache((slug: string) => getPublicBlogPost(slug));
 
-export async function generateMetadata({ params }: { params: Promise<{ postSlug: string }> }): Promise<Metadata> {
-  const post = await findPublicPost((await params).postSlug);
-  if (!post?.publishedAt) notFound();
-  const title = post.seoTitle || post.title;
+type BlogPostMetadataSource = {
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  coverImageUrl: string | null;
+  seoTitle: string | null;
+  metaDescription: string | null;
+  publishedAt: Date;
+  updatedAt: Date;
+};
+
+export function buildBlogPostMetadata(post: BlogPostMetadataSource): Metadata {
+  const rawTitle = post.seoTitle || post.title;
+  const documentTitle = buildBrandedTitle(rawTitle);
+  const socialTitle = normalizeDuplicateSocialTitle(rawTitle);
   const description = post.metaDescription || post.excerpt || undefined;
   const canonical = `/blog/${post.slug}`;
   const images = post.coverImageUrl ? [{ url: post.coverImageUrl, alt: post.title }] : [{ url: "/og.png", alt: "Self Apply Center study-abroad guidance" }];
-  return { title, description, alternates: { canonical }, robots: { index: true, follow: true }, openGraph: { type: "article", title, description, url: canonical, publishedTime: post.publishedAt.toISOString(), modifiedTime: post.updatedAt.toISOString(), images }, twitter: { card: "summary_large_image", title, description, images: images.map((image) => image.url) } };
+  return { title: { absolute: documentTitle }, description, alternates: { canonical }, robots: { index: true, follow: true }, openGraph: { type: "article", title: socialTitle, description, url: canonical, publishedTime: post.publishedAt.toISOString(), modifiedTime: post.updatedAt.toISOString(), images }, twitter: { card: "summary_large_image", title: socialTitle, description, images: images.map((image) => image.url) } };
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ postSlug: string }> }): Promise<Metadata> {
+  const post = await findPublicPost((await params).postSlug);
+  const publishedAt = post?.publishedAt;
+  if (!post || !publishedAt) notFound();
+  return buildBlogPostMetadata({ ...post, publishedAt });
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ postSlug: string }> }) {
