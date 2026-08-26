@@ -23,7 +23,7 @@ const renderedTestPost = {
   excerpt: "A stable fixture used only by the rendered HTML test server.",
   content: "# Deterministic article\n\nThis content does not use the configured database.",
   coverImageUrl: null,
-  seoTitle: null,
+  seoTitle: "Deterministic rendered blog fixture | Self Apply Center",
   metaDescription: null,
   featured: true,
   publishedAt: new Date("2026-07-01T06:15:00.000Z"),

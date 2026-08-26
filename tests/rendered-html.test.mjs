@@ -126,6 +126,8 @@ test("renders the database-backed blog and adaptive partnership fields", async (
   assert.equal(article.status, 200);
   const articleHtml = await article.text();
   assert.match(articleHtml, /This content does not use the configured database/i);
+  assert.match(articleHtml, /<title>Deterministic rendered blog fixture \| Self Apply Center<\/title>/i);
+  assert.doesNotMatch(articleHtml, /Self Apply Center \| Self Apply Center/i);
   assert.equal(canonicalFrom(articleHtml), "https://selfapplycenter.com/blog/deterministic-rendered-blog-fixture");
 
   const missingArticle = await render("/blog/not-a-published-post");
