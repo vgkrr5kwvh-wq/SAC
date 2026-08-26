@@ -50,6 +50,10 @@ async function render(path = "/") {
   return response;
 }
 
+function canonicalFrom(html) {
+  return html.match(/<link rel="canonical" href="([^"]+)"/i)?.[1];
+}
+
 test("server-renders the Self Apply Center homepage", async () => {
   const response = await render();
   assert.equal(response.status, 200);
@@ -71,7 +75,40 @@ test("server-renders the Self Apply Center homepage", async () => {
   assert.match(html, /tiktok\.com\/@selfapplycenter/);
   assert.match(html, /info@selfapplycenter\.com/);
   assert.match(html, /sac\.osom\.global\/1\/student/);
+  assert.equal(canonicalFrom(html), "https://selfapplycenter.com");
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
+});
+
+test("returns 410 only for legacy WordPress queries on the homepage", async () => {
+  const legacyQueries = [
+    "p=19319",
+    "p=",
+    "p=abc",
+    "p=1&p=2",
+    "page_id=1",
+    "attachment_id=1",
+    "cat=1",
+    "tag=casino",
+    "author=1",
+    "s=casino",
+    "m=202001",
+    "utm_source=test&p=19319",
+  ];
+
+  for (const query of legacyQueries) {
+    const response = await render(`/?${query}`);
+    assert.equal(response.status, 410, query);
+    assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow", query);
+    assert.equal(response.headers.get("location"), null, query);
+  }
+
+  const trackedHomepage = await render("/?utm_source=test");
+  assert.equal(trackedHomepage.status, 200);
+  assert.equal(canonicalFrom(await trackedHomepage.text()), "https://selfapplycenter.com");
+
+  const staticPage = await render("/about?p=1");
+  assert.equal(staticPage.status, 200);
+  assert.equal(canonicalFrom(await staticPage.text()), "https://selfapplycenter.com/about");
 });
 
 test("renders the database-backed blog and adaptive partnership fields", async () => {
@@ -79,17 +116,29 @@ test("renders the database-backed blog and adaptive partnership fields", async (
   const blogHtml = await blog.text();
   assert.match(blogHtml, /Straightforward guidance for studying abroad/i);
   assert.match(blogHtml, /Deterministic rendered blog fixture/i);
+  assert.equal(canonicalFrom(blogHtml), "https://selfapplycenter.com/blog");
+
+  const paginatedBlog = await render("/blog?page=1");
+  assert.equal(paginatedBlog.status, 200);
+  assert.equal(canonicalFrom(await paginatedBlog.text()), "https://selfapplycenter.com/blog");
 
   const article = await render("/blog/deterministic-rendered-blog-fixture");
   assert.equal(article.status, 200);
-  assert.match(await article.text(), /This content does not use the configured database/i);
+  const articleHtml = await article.text();
+  assert.match(articleHtml, /This content does not use the configured database/i);
+  assert.equal(canonicalFrom(articleHtml), "https://selfapplycenter.com/blog/deterministic-rendered-blog-fixture");
 
   const missingArticle = await render("/blog/not-a-published-post");
   assert.equal(missingArticle.status, 404);
 
   const category = await render("/blog/category/study-guides");
   assert.equal(category.status, 200);
-  assert.match(await category.text(), /Deterministic rendered blog fixture/i);
+  const categoryHtml = await category.text();
+  assert.match(categoryHtml, /Deterministic rendered blog fixture/i);
+  assert.equal(canonicalFrom(categoryHtml), "https://selfapplycenter.com/blog/category/study-guides");
+  const paginatedCategory = await render("/blog/category/study-guides?page=1");
+  assert.equal(paginatedCategory.status, 200);
+  assert.equal(canonicalFrom(await paginatedCategory.text()), "https://selfapplycenter.com/blog/category/study-guides");
   const missingCategory = await render("/blog/category/inactive-or-missing");
   assert.equal(missingCategory.status, 404);
 
@@ -148,7 +197,20 @@ test("renders the complete consultancy page set", async () => {
     const html = await response.text();
     assert.match(html, heading, path);
     assert.match(html, /Start your study-abroad journey with SAC/i, path);
+    assert.equal(canonicalFrom(html), `https://selfapplycenter.com${path}`, path);
   }
+});
+
+test("publishes a unique sitemap without query or legacy WordPress URLs", async () => {
+  const response = await fetch(`${origin}/sitemap.xml`);
+  assert.equal(response.status, 200);
+  const xml = await response.text();
+  const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+
+  assert.equal(urls.length, new Set(urls).size);
+  assert.equal(urls.filter((url) => url === "https://selfapplycenter.com/blog").length, 1);
+  assert.equal(urls.some((url) => url.includes("?")), false);
+  assert.equal(urls.some((url) => /[?&](?:p|page_id|attachment_id|cat|tag|author|s|m)=/.test(url)), false);
 });
 
 test("ships project branding and social-preview assets", async () => {
