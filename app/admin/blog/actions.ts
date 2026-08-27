@@ -96,6 +96,7 @@ export async function saveBlogPostAction(
 
     revalidatePath("/admin/blog");
     revalidatePath("/blog");
+    revalidatePath("/");
     revalidatePath("/sitemap.xml");
     revalidatePath(`/blog/${result.post.slug}`);
     if (result.existingSlug && result.existingSlug !== result.post.slug) revalidatePath(`/blog/${result.existingSlug}`);
@@ -119,7 +120,7 @@ export async function deleteBlogPostAction(postId: string): Promise<void> {
   if (!isBlogPostId(postId)) redirect("/admin/blog?delete=failed");
   try {
     const post = await prisma.blogPost.delete({ where: { id: postId }, select: { slug: true, categories: { select: { slug: true } } } });
-    revalidatePath("/admin/blog"); revalidatePath("/blog"); revalidatePath(`/blog/${post.slug}`); revalidatePath("/sitemap.xml");
+    revalidatePath("/admin/blog"); revalidatePath("/blog"); revalidatePath("/"); revalidatePath(`/blog/${post.slug}`); revalidatePath("/sitemap.xml");
     for (const category of post.categories) revalidatePath(`/blog/category/${category.slug}`);
     redirect("/admin/blog?deleted=1");
   } catch (error) {

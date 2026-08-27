@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import FeaturedInsights from "@/components/blog/featured-insights";
 import HomePage from "./home-page";
 
 export const metadata: Metadata = {
@@ -9,5 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <HomePage />;
+  return <HomePage featuredInsights={<FeaturedInsights />} />;
 }

@@ -75,6 +75,8 @@ test("server-renders the Self Apply Center homepage", async () => {
   assert.match(html, /tiktok\.com\/@selfapplycenter/);
   assert.match(html, /info@selfapplycenter\.com/);
   assert.match(html, /sac\.osom\.global\/1\/student/);
+  assert.match(html, /Featured insights/i);
+  assert.match(html, /href="\/blog"/i);
   assert.equal(canonicalFrom(html), "https://selfapplycenter.com");
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });
@@ -116,6 +118,7 @@ test("renders the database-backed blog and adaptive partnership fields", async (
   const blogHtml = await blog.text();
   assert.match(blogHtml, /Straightforward guidance for studying abroad/i);
   assert.match(blogHtml, /Deterministic rendered blog fixture/i);
+  assert.doesNotMatch(blogHtml, /is-hero/);
   assert.equal(canonicalFrom(blogHtml), "https://selfapplycenter.com/blog");
 
   const paginatedBlog = await render("/blog?page=1");
@@ -229,7 +232,7 @@ test("ships project branding and social-preview assets", async () => {
   assert.match(layout, /\/favicon\.svg/);
   assert.match(layout, /\/favicon\.ico/);
   assert.match(layout, /\/apple-touch-icon\.png/);
-  assert.match(page, /<HomePage \/>/);
+  assert.match(page, /<HomePage featuredInsights=\{<FeaturedInsights \/>\} \/>/);
   assert.match(homePage, /self-apply-center-hero\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.match(siteData, /partner-with-us/);

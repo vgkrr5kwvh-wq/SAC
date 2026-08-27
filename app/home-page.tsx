@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FormEvent, useState } from "react";
+import { FormEvent, type ReactNode, useState } from "react";
 
 const applyUrl = "https://sac.osom.global/1/student";
 
@@ -33,7 +33,7 @@ const testimonials = [
   ["Kanchan Poudel", "Canada visa approved", "SAC made my dream of studying in Canada a reality with counselling, application support, and visa appointment guidance.", "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80"],
 ];
 
-export default function HomePage() {
+export default function HomePage({ featuredInsights }: { featuredInsights?: ReactNode }) {
   const [formState, setFormState] = useState<{
     status: "idle" | "submitting" | "success" | "validation-error" | "server-error";
     message: string;
@@ -215,6 +215,8 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {featuredInsights}
 
         <section className="section stories-section" id="stories">
           <div className="shell">
