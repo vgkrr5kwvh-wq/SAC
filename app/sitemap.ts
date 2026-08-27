@@ -10,6 +10,7 @@ const siteUrl = "https://selfapplycenter.com";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
     { url: siteUrl, changeFrequency: "weekly", priority: 1 },
+    { url: `${siteUrl}/privacy-policy`, changeFrequency: "yearly", priority: 0.5 },
     ...Object.keys(sitePages)
       .filter((slug) => slug !== "blog")
       .map((slug) => ({ url: `${siteUrl}/${slug}`, changeFrequency: "monthly" as const, priority: 0.7 })),

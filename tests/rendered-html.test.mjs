@@ -194,6 +194,7 @@ test("renders the complete consultancy page set", async () => {
     ["/events", /Focused sessions for the decisions students face next/i],
     ["/contact", /Talk to a counsellor about your study goal/i],
     ["/partner-with-us", /Build clearer international study pathways/i],
+    ["/privacy-policy", /How we handle information on this website/i],
   ];
 
   for (const [path, heading] of expectedPages) {
@@ -202,6 +203,7 @@ test("renders the complete consultancy page set", async () => {
     const html = await response.text();
     assert.match(html, heading, path);
     assert.match(html, /Start your study-abroad journey with SAC/i, path);
+    assert.match(html, /href="\/privacy-policy"[^>]*>Privacy Policy</i, path);
     assert.equal(canonicalFrom(html), `https://selfapplycenter.com${path}`, path);
   }
 });
@@ -214,6 +216,7 @@ test("publishes a unique sitemap without query or legacy WordPress URLs", async 
 
   assert.equal(urls.length, new Set(urls).size);
   assert.equal(urls.filter((url) => url === "https://selfapplycenter.com/blog").length, 1);
+  assert.equal(urls.filter((url) => url === "https://selfapplycenter.com/privacy-policy").length, 1);
   assert.equal(urls.some((url) => url.includes("?")), false);
   assert.equal(urls.some((url) => /[?&](?:p|page_id|attachment_id|cat|tag|author|s|m)=/.test(url)), false);
 });

@@ -23,7 +23,7 @@ export default function SiteFooter() {
             <p>Professional education guidance for students who want a transparent, well-organized route to international study.</p>
             <div className="social-text"><a href="https://www.facebook.com/selfapplycenter" target="_blank" rel="noopener noreferrer">Facebook</a><a href="https://www.instagram.com/usaselfapplycenter" target="_blank" rel="noopener noreferrer">Instagram</a><a href="https://www.linkedin.com/company/self-apply-center" target="_blank" rel="noopener noreferrer">LinkedIn</a><a href="https://www.tiktok.com/@selfapplycenter" target="_blank" rel="noopener noreferrer">TikTok</a></div>
           </div>
-          <div><h3>Company</h3><Link href="/about">About Us</Link><Link href="/our-team">Our Team</Link><Link href="/partner-with-us">Partner With Us</Link><Link href="/events">Events</Link></div>
+          <div><h3>Company</h3><Link href="/about">About Us</Link><Link href="/our-team">Our Team</Link><Link href="/partner-with-us">Partner With Us</Link><Link href="/events">Events</Link><Link href="/privacy-policy">Privacy Policy</Link></div>
           <div><h3>Student Support</h3><Link href="/services">Our Services</Link><Link href="/destinations">Study Destinations</Link><Link href="/success-stories">Success Stories</Link><Link href="/blog">Study Resources</Link></div>
           <div className="footer-contact">
             <h3>Contact</h3><p>Star Mall, 2nd Floor<br />Putalisadak, Kathmandu</p><a href="tel:+977014012581">01-4012581</a><a href="https://wa.me/9779761642336" target="_blank" rel="noopener noreferrer">+977 9761642336</a><a href="mailto:info@selfapplycenter.com">info@selfapplycenter.com</a>
