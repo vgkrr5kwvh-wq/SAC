@@ -1,15 +1,19 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import MarkdownContent from "../components/blog/markdown-content";
 import BlogPostForm from "../components/admin/blog-post-form";
+import BlogCard from "../components/blog/blog-card";
 import { formatNepalDateTimeInput, parseNepalDateTimeInput } from "../lib/blog/dates";
 import { estimateReadingTime } from "../lib/blog/reading-time";
 import { createBlogSlug } from "../lib/blog/slug";
 import { buildPublicBlogWhere, blogPostInputSchema, isBlogPostPublic, parseBlogPostInput, resolveBlogPublishedAt } from "../lib/blog/validation";
 import { buildBlogSitemapEntries } from "../lib/blog/sitemap";
 import { createInitialBlogFormState } from "../lib/blog/form-state";
+import { getHomepageBlogPosts, publicBlogOrderBy, type PublicBlogPost } from "../lib/blog/queries";
+import { shouldUseBlogHero } from "../lib/blog/params";
 
 test("normalizes blog slugs", () => {
   assert.equal(createBlogSlug("Study in USA 2026"), "study-in-usa-2026");
@@ -77,6 +81,87 @@ test("enforces public visibility rules", () => {
   assert.equal(isBlogPostPublic({ status: "PUBLISHED", publishedAt: new Date("2026-07-19T00:00:00Z") }, now), false);
   assert.equal(isBlogPostPublic({ status: "PUBLISHED", publishedAt: now }, now), true);
   assert.deepEqual(buildPublicBlogWhere(now), { status: "PUBLISHED", publishedAt: { not: null, lte: now } });
+});
+
+function publicPost(slug: string, featured: boolean, publishedAt: Date): PublicBlogPost & { publishedAt: Date } {
+  return { title: slug, slug, excerpt: `${slug} excerpt`, content: `${slug} article content`, coverImageUrl: `https://example.com/${slug}.jpg`, seoTitle: null, metaDescription: null, featured, publishedAt, updatedAt: publishedAt, categories: [{ name: "Study Guides", slug: "study-guides" }] };
+}
+
+test("uses latest published posts only when no eligible featured posts exist", async () => {
+  const latest = [
+    publicPost("latest-three", false, new Date("2026-07-03T00:00:00Z")),
+    publicPost("latest-two", false, new Date("2026-07-02T00:00:00Z")),
+    publicPost("latest-one", false, new Date("2026-07-01T00:00:00Z")),
+  ];
+  const calls: Array<{ where: Record<string, unknown>; take: number }> = [];
+  const result = await getHomepageBlogPosts(3, new Date("2026-07-10T00:00:00Z"), async (args) => {
+    calls.push({ where: args.where as Record<string, unknown>, take: args.take });
+    return args.where.featured ? [] : latest;
+  });
+  assert.deepEqual(result.map((post) => post.slug), ["latest-three", "latest-two", "latest-one"]);
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[0].where, { status: "PUBLISHED", publishedAt: { not: null, lte: new Date("2026-07-10T00:00:00Z") }, featured: true });
+  assert.equal(calls[0].take, 3);
+});
+
+test("homepage visibility rules exclude featured drafts and future posts", () => {
+  const now = new Date("2026-07-10T00:00:00Z");
+  assert.equal(isBlogPostPublic({ status: "DRAFT", publishedAt: new Date("2026-07-01T00:00:00Z") }, now), false);
+  assert.equal(isBlogPostPublic({ status: "PUBLISHED", publishedAt: new Date("2026-07-11T00:00:00Z") }, now), false);
+  assert.equal(isBlogPostPublic({ status: "PUBLISHED", publishedAt: new Date("2026-07-09T00:00:00Z") }, now), true);
+});
+
+test("returns only eligible featured posts without filling unused positions", async () => {
+  for (const count of [1, 2, 3, 4]) {
+    const featured = Array.from({ length: count }, (_, index) => publicPost(`featured-${count - index}`, true, new Date(Date.UTC(2026, 6, count - index))));
+    let calls = 0;
+    const result = await getHomepageBlogPosts(3, new Date("2026-07-10T00:00:00Z"), async (args) => {
+      calls += 1;
+      assert.equal(args.where.featured, true);
+      assert.deepEqual(args.orderBy, [{ publishedAt: "desc" }, { id: "desc" }]);
+      return featured.slice(0, args.take);
+    });
+    assert.equal(result.length, Math.min(count, 3));
+    assert.deepEqual(result.map((post) => post.slug), featured.slice(0, 3).map((post) => post.slug));
+    assert.equal(calls, 1);
+  }
+});
+
+test("keeps featured-first blog ordering and limits hero layout to the first result", () => {
+  assert.deepEqual(publicBlogOrderBy, [{ featured: "desc" }, { publishedAt: "desc" }, { id: "desc" }]);
+  assert.equal(shouldUseBlogHero(1, 0, true), true);
+  assert.equal(shouldUseBlogHero(1, 1, true), false);
+  assert.equal(shouldUseBlogHero(1, 0, false), false);
+  assert.equal(shouldUseBlogHero(2, 0, true), false);
+});
+
+test("separates the featured badge from hero layout while preserving card content", () => {
+  const post = publicPost("featured-guide", true, new Date("2026-07-03T00:00:00Z"));
+  const standardHtml = renderToStaticMarkup(createElement(BlogCard, { post }));
+  assert.match(standardHtml, /class="blog-card cms-blog-card is-featured"/);
+  assert.doesNotMatch(standardHtml, /is-hero/);
+  assert.match(standardHtml, /Featured/);
+  assert.match(standardHtml, /featured-guide excerpt/);
+  assert.match(standardHtml, /Study Guides/);
+  assert.match(standardHtml, /3 July 2026/);
+  assert.match(standardHtml, /1 min read/);
+  assert.match(standardHtml, /https:\/\/example\.com\/featured-guide\.jpg/);
+  const heroHtml = renderToStaticMarkup(createElement(BlogCard, { post, hero: true }));
+  assert.match(heroHtml, /is-featured is-hero/);
+});
+
+test("blog mutations revalidate both homepage and blog index", () => {
+  const actions = readFileSync(new URL("../app/admin/blog/actions.ts", import.meta.url), "utf8");
+  assert.match(actions, /revalidatePath\("\/blog"\);\s*revalidatePath\("\/"\);/);
+  assert.equal((actions.match(/revalidatePath\("\/"\)/g) ?? []).length, 2);
+});
+
+test("uses explicit responsive hero classes instead of featured status for layout", () => {
+  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /\.blog-card\.is-hero/);
+  assert.match(css, /@media \(max-width: 1020px\)[\s\S]*\.blog-card\.is-hero/);
+  assert.match(css, /@media \(max-width: 680px\)[\s\S]*\.featured-insights-grid/);
+  assert.doesNotMatch(css, /\.blog-card\.featured/);
 });
 
 test("builds blog sitemap entries from public records only", () => {
