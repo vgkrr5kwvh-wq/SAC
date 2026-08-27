@@ -13,7 +13,6 @@ import { buildPublicBlogWhere, blogPostInputSchema, isBlogPostPublic, parseBlogP
 import { buildBlogSitemapEntries } from "../lib/blog/sitemap";
 import { createInitialBlogFormState } from "../lib/blog/form-state";
 import { getHomepageBlogPosts, publicBlogOrderBy, type PublicBlogPost } from "../lib/blog/queries";
-import { shouldUseBlogHero } from "../lib/blog/params";
 
 test("normalizes blog slugs", () => {
   assert.equal(createBlogSlug("Study in USA 2026"), "study-in-usa-2026");
@@ -127,12 +126,24 @@ test("returns only eligible featured posts without filling unused positions", as
   }
 });
 
-test("keeps featured-first blog ordering and limits hero layout to the first result", () => {
+test("keeps featured-first blog ordering without changing card layout", () => {
   assert.deepEqual(publicBlogOrderBy, [{ featured: "desc" }, { publishedAt: "desc" }, { id: "desc" }]);
-  assert.equal(shouldUseBlogHero(1, 0, true), true);
-  assert.equal(shouldUseBlogHero(1, 1, true), false);
-  assert.equal(shouldUseBlogHero(1, 0, false), false);
-  assert.equal(shouldUseBlogHero(2, 0, true), false);
+  const blogPage = readFileSync(new URL("../app/blog/page.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(blogPage, /hero=/);
+  assert.doesNotMatch(blogPage, /shouldUseBlogHero/);
+});
+
+test("renders multiple featured blog posts and non-featured posts as normal cards", () => {
+  const posts = [
+    publicPost("featured-newest", true, new Date("2026-07-03T00:00:00Z")),
+    publicPost("featured-older", true, new Date("2026-07-02T00:00:00Z")),
+    publicPost("standard", false, new Date("2026-07-01T00:00:00Z")),
+  ];
+  const html = posts.map((post) => renderToStaticMarkup(createElement(BlogCard, { post }))).join("");
+  assert.equal((html.match(/is-featured/g) ?? []).length, 2);
+  assert.equal((html.match(/>Featured</g) ?? []).length, 2);
+  assert.equal((html.match(/is-hero/g) ?? []).length, 0);
+  assert.match(html, /class="blog-card cms-blog-card"/);
 });
 
 test("separates the featured badge from hero layout while preserving card content", () => {
@@ -158,10 +169,13 @@ test("blog mutations revalidate both homepage and blog index", () => {
 
 test("uses explicit responsive hero classes instead of featured status for layout", () => {
   const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  const homepageSection = readFileSync(new URL("../components/blog/featured-insights.tsx", import.meta.url), "utf8");
   assert.match(css, /\.blog-card\.is-hero/);
+  assert.match(css, /\.blog-index \.blog-card\.is-featured/);
   assert.match(css, /@media \(max-width: 1020px\)[\s\S]*\.blog-card\.is-hero/);
   assert.match(css, /@media \(max-width: 680px\)[\s\S]*\.featured-insights-grid/);
   assert.doesNotMatch(css, /\.blog-card\.featured/);
+  assert.match(homepageSection, /hero=\{hasHero && index === 0\}/);
 });
 
 test("builds blog sitemap entries from public records only", () => {

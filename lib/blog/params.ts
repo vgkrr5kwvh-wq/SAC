@@ -1,9 +1,5 @@
 export const blogPageSize = 10;
 
-export function shouldUseBlogHero(page: number, index: number, featured: boolean): boolean {
-  return page === 1 && index === 0 && featured;
-}
-
 export function parseBlogPage(value: string | string[] | undefined): number {
   if (typeof value !== "string" || !/^[1-9]\d{0,5}$/.test(value)) return 1;
   return Number(value);

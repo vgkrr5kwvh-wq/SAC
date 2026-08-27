@@ -118,7 +118,7 @@ test("renders the database-backed blog and adaptive partnership fields", async (
   const blogHtml = await blog.text();
   assert.match(blogHtml, /Straightforward guidance for studying abroad/i);
   assert.match(blogHtml, /Deterministic rendered blog fixture/i);
-  assert.equal((blogHtml.match(/is-hero/g) ?? []).length >= 1, true);
+  assert.doesNotMatch(blogHtml, /is-hero/);
   assert.equal(canonicalFrom(blogHtml), "https://selfapplycenter.com/blog");
 
   const paginatedBlog = await render("/blog?page=1");
